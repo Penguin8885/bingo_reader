@@ -22,27 +22,70 @@ def get_hsv_thresholding_img(img):
 
 
 def get_rect_contour_img(img, binary_img):
+    #get contour
     _, contours, _ = cv2.findContours(binary_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+    #get rect contour
     noisy_rect_contour_img = np.copy(img)
     passer = []
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
         cv2.rectangle(noisy_rect_contour_img, (x,y), (x+w,y+h), (0,0,255), 10)
 
-        raito = w/h
+        #noise cancellation
         area = w*h
-        if (ratio > 0.7 and ratio < 1.3) and (area > 70000 and area < 200000):
-            passer.append((x, y, x+w, y+h))
-    rect_cntours = passer
+        ratio = w/h
+        if (area > 70000 and area < 200000) and (ratio > 0.7 and ratio < 1.3):
+            passer.append((x, y, w, h))
+    rect_contours = passer
 
-    rect_conturs.sort(key=lambda tuple_: tuple_[2]*tuple_[3], reverse=True)
-    for cnt in rect_conturs:
-        print(rect_conturs.index(cnt)+1, "\t", cnt[2]*cnt[3])
+    #########
+    if len(rect_contours) != 25:
+        print("Warning: The number of contours is not 25")
+    #########
 
+    #sort (clustering)
+    rect_contours.sort()
+
+    base = rect_contours[0]
+    cluster = []
+    rect_contour_clusters = []
+    for cnt in rect_contours:
+        if abs(base[0] - cnt[0]) < 100:
+            cluster.append(cnt)
+        else:
+            rect_contour_clusters.append(cluster)
+            base = cnt
+            cluster = [cnt]
+    rect_contour_clusters.append(cluster)
+
+    for cluster in rect_contour_clusters:
+        cluster.sort(key=lambda x: x[1])
+
+    rect_contours = []
+    for cluster in rect_contour_clusters:
+        for cnt in cluster:
+            rect_contours.append(cnt)
+
+    print("# \t (x, y, area, ratio)")
+    for cnt in rect_contours:
+        print(rect_contours.index(cnt), "\t", (cnt[0],cnt[1],cnt[2]*cnt[3],cnt[2]/cnt[3]))
+
+    #draw image
     rect_contour_img = np.copy(img)
-    for cnt in rect_conturs:
+    for cnt in rect_contours:
         cv2.rectangle(rect_contour_img, (cnt[0],cnt[1]), (cnt[0]+cnt[2],cnt[1]+cnt[3]), (0,0,255), 10)
+
+        cv2.putText(
+            rect_contour_img,
+            str(rect_contours.index(cnt)),
+            (cnt[0],cnt[1]),
+            cv2.FONT_HERSHEY_PLAIN,
+            5, #font size
+            (0,0,255),
+            8, #line thickness
+            cv2.LINE_AA
+        )
 
     return noisy_rect_contour_img, rect_contour_img
 
