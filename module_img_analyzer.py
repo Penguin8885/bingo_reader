@@ -3,11 +3,27 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
-def get_gray_thresholding_img(img):
+def get_gray_thresholding_img(bgr_img):
+    blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+
     return False
 
-def get_hsv_thresholding_img(img):
-    blur_img = cv2.GaussianBlur(img, (15,15), 0)
+def get_bgr_thresholdimg_img(bgr_img):
+    blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+
+    threshold_img = cv2.inRange(
+        bgr_img,
+        np.array([0,0,0], np.uint8),
+        np.array([100,100,100], np.uint8)
+    )
+
+    threshold_img = cv2.bitwise_not(threshold_img)
+
+    return threshold_img
+
+
+def get_hsv_thresholding_img(bgr_img):
+    blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
 
     hsv_img = cv2.cvtColor(blur_img, cv2.COLOR_BGR2HSV)
     threshold_img = cv2.inRange(
@@ -21,12 +37,12 @@ def get_hsv_thresholding_img(img):
     return threshold_img
 
 
-def get_rect_contour_img(img, binary_img):
+def get_rect_contour_img(bgr_img, binary_img):
     #get contour
     _, contours, _ = cv2.findContours(binary_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     #get rect contour
-    noisy_rect_contour_img = np.copy(img)
+    noisy_rect_contour_img = np.copy(bgr_img)
     passer = []
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
@@ -72,7 +88,7 @@ def get_rect_contour_img(img, binary_img):
         print(rect_contours.index(cnt), "\t", (cnt[0],cnt[1],cnt[2]*cnt[3],cnt[2]/cnt[3]))
 
     #draw image
-    rect_contour_img = np.copy(img)
+    rect_contour_img = np.copy(bgr_img)
     for cnt in rect_contours:
         cv2.rectangle(rect_contour_img, (cnt[0],cnt[1]), (cnt[0]+cnt[2],cnt[1]+cnt[3]), (0,0,255), 10)
 
@@ -90,10 +106,10 @@ def get_rect_contour_img(img, binary_img):
     return noisy_rect_contour_img, rect_contour_img
 
 
-def get_circle_contour_img(img, binary_img):
+def get_circle_contour_img(bgr_img, binary_img):
     circles = cv2.HoughCircles(binary_img, cv2.HOUGH_GRADIENT, dp=5, minDist=400, minRadius=180, maxRadius=200)
 
-    circle_contour_img = np.copy(img)
+    circle_contour_img = np.copy(bgr_img)
     if circles is not None and len(circles) > 0:
         for (x, y, r) in circles[0]:
             print((x,y,r))
@@ -109,12 +125,23 @@ def get_circle_contour_img(img, binary_img):
 def show_thresholding_img(file_name):
     img = cv2.imread(file_name)
 
-    threshold_img = get_hsv_thresholding_img(img)
+    threshold_img = get_bgr_thresholdimg_img(img)
+    #threshold_img = get_hsv_thresholding_img(img)
 
     threshold_img = cv2.cvtColor(threshold_img, cv2.COLOR_GRAY2RGB)
     plt.imshow(threshold_img)
     plt.show()
 
+def show_noisy_contour_img(file_name):
+    img = cv2.imread(file_name)
+
+    threshold_img = get_hsv_thresholding_img(img)
+    contour_img, _ = get_rect_contour_img(img, threshold_img)
+    #contour_img = get_circle_contour_img(img, threshold_img)
+
+    contour_img = cv2.cvtColor(contour_img, cv2.COLOR_BGR2RGB)
+    plt.imshow(contour_img)
+    plt.show()
 
 def show_contour_img(file_name):
     img = cv2.imread(file_name)
@@ -140,6 +167,8 @@ def write_imgs(file_name, output_name):
 
 
 if __name__ == '__main__':
-    file_name = "IMG_4877.jpg"
-    show_contour_img("./data/3001-3200/"+file_name)
-    write_imgs("./data/3001-3200/"+file_name, "sample.jpg")
+    file_name = "./data/3001-3200/IMG_4877.jpg"
+    show_thresholding_img(file_name)
+    #show_noisy_contour_img(file_name)
+    #show_contour_img(file_name)
+    #write_imgs(file_name, "sample.jpg")
