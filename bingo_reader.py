@@ -14,6 +14,6 @@ if __name__ == '__main__':
         img = cv2.imread("./data/3001-3200/" + file_name)
 
         threshold_img = ia.get_thresholding_img(img)
-        rectcontour_img = ia.get_rectcontour_img(img, threshold_img)
+        contour_rect_img = ia.get_contour_rect_img(img, threshold_img)
 
-        cv2.imwrite("./result/3001-3200/" + file_name, rectcontour_img)
+        cv2.imwrite("./result/3001-3200/" + file_name, contour_rect_img)
