@@ -106,6 +106,16 @@ def get_circle_contour_img(img, binary_img):
     return circle_contour_img
 
 
+def show_thresholding_img(file_name):
+    img = cv2.imread(file_name)
+
+    threshold_img = get_hsv_thresholding_img(img)
+
+    threshold_img = cv2.cvtColor(threshold_img, cv2.COLOR_GRAY2RGB)
+    plt.imshow(threshold_img)
+    plt.show()
+
+
 def show_contour_img(file_name):
     img = cv2.imread(file_name)
 
