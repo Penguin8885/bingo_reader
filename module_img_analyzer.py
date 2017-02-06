@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 def get_gray_thresholding_img(bgr_img, lower, upper):
     blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
 
-    _, threshold_img = cv2.threshold(blur_img, lower, upper, cv2.THRESH_BINARY)
+    gray_img = cv2.cvtColor(blur_img, cv2.COLOR_BGR2GRAY)
+    _, threshold_img = cv2.threshold(gray_img, lower, upper, cv2.THRESH_BINARY)
 
     return threshold_img
+
 
 def get_bgr_thresholdimg_img(bgr_img, lower, upper):
     blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
@@ -127,9 +129,9 @@ def get_circle_contour_img(bgr_img, binary_img):
 def _show_thresholding_img(file_name):
     img = cv2.imread(file_name)
 
-    threshold_img = get_gray_thresholding_img(img, 127, 255)
-    #threshold_img = get_bgr_thresholdimg_img(img, [30, 0, 100], [180, 100, 255])
-    #threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
+    threshold_img = get_gray_thresholding_img(img, 80, 255)
+    #threshold_img = get_bgr_thresholdimg_img(img, [200, 200, 200], [255, 255, 255])
+    #threshold_img = get_hsv_thresholding_img(img, [0, 0, 0], [255, 200, 255])
 
     threshold_img = cv2.cvtColor(threshold_img, cv2.COLOR_GRAY2RGB)
     plt.imshow(threshold_img)
@@ -170,7 +172,7 @@ def _write_imgs(file_name, output_name):
 
 if __name__ == '__main__':
     file_name = "./data/3001-3200/IMG_4877.jpg"
-    #_show_thresholding_img(file_name)
+    _show_thresholding_img(file_name)
     #_show_noisy_contour_img(file_name)
     #_show_contour_img(file_name)
     #_write_imgs(file_name, "sample.jpg")
