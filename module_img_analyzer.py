@@ -130,5 +130,6 @@ def write_imgs(file_name, output_name):
 
 
 if __name__ == '__main__':
-    show_contour_img("./data/3001-3200/IMG_4798.jpg")
-    #write_imgs("./data/3001-3200/IMG_4798.jpg", "sample.jpg")
+    file_name = "IMG_4877.jpg"
+    show_contour_img("./data/3001-3200/"+file_name)
+    write_imgs("./data/3001-3200/"+file_name, "sample.jpg")
