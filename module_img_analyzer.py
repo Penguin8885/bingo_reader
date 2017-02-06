@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 def get_gray_thresholding_img(bgr_img):
     blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
 
-    return False
+    _, threshold_img = cv2.threshold(blur_img, 127, 255, cv2.THRESH_BINARY)
+
+    return threshold_img
 
 def get_bgr_thresholdimg_img(bgr_img):
     blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
