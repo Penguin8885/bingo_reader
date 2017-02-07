@@ -4,41 +4,57 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 def get_gray_thresholding_img(bgr_img, lower, upper):
-    blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+    #bgr_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
 
-    gray_img = cv2.cvtColor(blur_img, cv2.COLOR_BGR2GRAY)
+    gray_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2GRAY)
     _, threshold_img = cv2.threshold(gray_img, lower, upper, cv2.THRESH_BINARY)
+
+    #threshold_img = cv2.GaussianBlur(threshold_img, (15,15), 0)
 
     return threshold_img
 
 
 def get_bgr_thresholdimg_img(bgr_img, lower, upper):
-    blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+    #bgr_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
 
     threshold_img = cv2.inRange(
         bgr_img,
         np.array(lower, np.uint8),
         np.array(upper, np.uint8)
     )
-
     threshold_img = cv2.bitwise_not(threshold_img)
+
+    #threshold_img = cv2.GaussianBlur(threshold_img, (15,15), 0)
 
     return threshold_img
 
 
 def get_hsv_thresholding_img(bgr_img, lower, upper):
-    blur_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+    bgr_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
 
-    hsv_img = cv2.cvtColor(blur_img, cv2.COLOR_BGR2HSV)
+    hsv_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2HSV)
     threshold_img = cv2.inRange(
         hsv_img,
         np.array(lower, np.uint8),
         np.array(upper, np.uint8)
     )
-
     threshold_img = cv2.bitwise_not(threshold_img)
 
+    #threshold_img = cv2.GaussianBlur(threshold_img, (15,15), 0)
+
     return threshold_img
+
+
+def get_canny_img(bgr_img, lower, upper):
+    #bgr_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+
+    gray_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2GRAY)
+    canny_img = cv2.Canny(gray_img, lower, upper)
+
+    canny_img = cv2.GaussianBlur(canny_img, (15,15), 0)
+    canny_img = cv2.medianBlur(canny_img, 5)
+
+    return canny_img
 
 
 def get_rect_contour_img(bgr_img, binary_img):
