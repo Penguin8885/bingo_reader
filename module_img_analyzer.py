@@ -3,19 +3,29 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
-def get_gray_thresholding_img(bgr_img, lower, upper):
-    #bgr_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+
+def GauusianBulur(img, size=15):
+    return cv2.GauusianBulur(img, (size, size), 0)
+def medianBlur(img, size=3):
+    return cv2.medianBlur(img, size)
+
+
+
+def get_gray_thresholding_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur, post_blur_func=None, blur_size=15):
+    if pre_blur_func is not None:
+        bgr_img = pre_blur_func(bgr_img, blur_size)
 
     gray_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2GRAY)
     _, threshold_img = cv2.threshold(gray_img, lower, upper, cv2.THRESH_BINARY)
 
-    #threshold_img = cv2.GaussianBlur(threshold_img, (15,15), 0)
+    if post_blur_func is not None:
+        threshold_img = post_blur_func(threshold_img, blur_size)
 
     return threshold_img
 
-
-def get_bgr_thresholdimg_img(bgr_img, lower, upper):
-    #bgr_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+def get_bgr_thresholdimg_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur, post_blur_func=None, blur_size=15):
+    if pre_blur_func is not None:
+        bgr_img = pre_blur_func(bgr_img, blur_size)
 
     threshold_img = cv2.inRange(
         bgr_img,
@@ -24,13 +34,14 @@ def get_bgr_thresholdimg_img(bgr_img, lower, upper):
     )
     threshold_img = cv2.bitwise_not(threshold_img)
 
-    #threshold_img = cv2.GaussianBlur(threshold_img, (15,15), 0)
+    if post_blur_func is not None:
+        threshold_img = post_blur_func(threshold_img, blur_size)
 
     return threshold_img
 
-
-def get_hsv_thresholding_img(bgr_img, lower, upper):
-    bgr_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+def get_hsv_thresholding_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur, post_blur_func=None, blur_size=15):
+    if pre_blur_func is not None:
+        bgr_img = pre_blur_func(bgr_img, blur_size)
 
     hsv_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2HSV)
     threshold_img = cv2.inRange(
@@ -40,21 +51,23 @@ def get_hsv_thresholding_img(bgr_img, lower, upper):
     )
     threshold_img = cv2.bitwise_not(threshold_img)
 
-    #threshold_img = cv2.GaussianBlur(threshold_img, (15,15), 0)
+    if post_blur_func is not None:
+        threshold_img = post_blur_func(threshold_img, blur_size)
 
     return threshold_img
 
-
-def get_canny_img(bgr_img, lower, upper):
-    #bgr_img = cv2.GaussianBlur(bgr_img, (15,15), 0)
+def get_canny_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur, post_blur_func=None, blur_size=15):
+    if pre_blur_func is not None:
+        bgr_img = pre_blur_func(bgr_img, blur_size)
 
     gray_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2GRAY)
     canny_img = cv2.Canny(gray_img, lower, upper)
 
-    canny_img = cv2.GaussianBlur(canny_img, (15,15), 0)
-    canny_img = cv2.medianBlur(canny_img, 5)
+    if post_blur_func is not None:
+        canny_img = post_blur_func(canny_img, blur_size)
 
     return canny_img
+
 
 
 def get_rect_contour_img(bgr_img, binary_img):
@@ -124,7 +137,6 @@ def get_rect_contour_img(bgr_img, binary_img):
         )
 
     return noisy_rect_contour_img, rect_contour_img
-
 
 def get_circle_contour_img(bgr_img, binary_img):
     circles = cv2.HoughCircles(binary_img, cv2.HOUGH_GRADIENT, dp=5, minDist=400, minRadius=180, maxRadius=200)

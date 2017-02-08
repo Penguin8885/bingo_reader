@@ -9,10 +9,10 @@ import module_img_analyzer as ia
 def show_thresholding_img(file_name):
     img = cv2.imread(file_name)
 
-    threshold_img = ia.get_canny_img(img, 10, 50)
+    #threshold_img = ia.get_canny_img(img, 10, 50)
     #threshold_img = ia.get_gray_thresholding_img(img, 80, 255)
     #threshold_img = ia.get_bgr_thresholdimg_img(img, [200, 200, 200], [255, 255, 255])
-    #threshold_img = ia.get_hsv_thresholding_img(img, [0, 0, 0], [255, 255, 60])
+    threshold_img = ia.get_hsv_thresholding_img(img, [0, 0, 0], [255, 255, 60])
 
     threshold_img = cv2.cvtColor(threshold_img, cv2.COLOR_GRAY2RGB)
     plt.imshow(threshold_img)
