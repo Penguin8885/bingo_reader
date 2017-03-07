@@ -12,7 +12,7 @@ def show_thresholding_img(file_name):
     #threshold_img = ia.get_canny_img(img, 10, 50)
     #threshold_img = ia.get_gray_thresholding_img(img, 80, 255)
     #threshold_img = ia.get_bgr_thresholdimg_img(img, [200, 200, 200], [255, 255, 255])
-    threshold_img = ia.get_hsv_thresholding_img(img, [0, 0, 0], [255, 255, 60])
+    threshold_img = ia.get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
 
     threshold_img = cv2.cvtColor(threshold_img, cv2.COLOR_GRAY2RGB)
     plt.imshow(threshold_img)
@@ -53,7 +53,7 @@ def write_imgs(file_name, output_name):
 
 if __name__ == '__main__':
     file_name = "./data/3001-3200/IMG_4879.jpg"#4887
-    show_thresholding_img(file_name)
+    #show_thresholding_img(file_name)
     #show_noisy_contour_img(file_name)
-    #show_contour_img(file_name)
+    show_contour_img(file_name)
     #write_imgs(file_name, "sample.jpg")

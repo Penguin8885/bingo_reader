@@ -4,14 +4,14 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-def GauusianBulur(img, size=15):
-    return cv2.GauusianBulur(img, (size, size), 0)
+def GaussianBlur(img, size=15):
+    return cv2.GaussianBlur(img, (size, size), 0)
 def medianBlur(img, size=3):
     return cv2.medianBlur(img, size)
 
 
 
-def get_gray_thresholding_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur, post_blur_func=None, blur_size=15):
+def get_gray_thresholding_img(bgr_img, lower, upper, pre_blur_func=GaussianBlur, post_blur_func=None, blur_size=15):
     if pre_blur_func is not None:
         bgr_img = pre_blur_func(bgr_img, blur_size)
 
@@ -23,7 +23,7 @@ def get_gray_thresholding_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur
 
     return threshold_img
 
-def get_bgr_thresholdimg_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur, post_blur_func=None, blur_size=15):
+def get_bgr_thresholdimg_img(bgr_img, lower, upper, pre_blur_func=GaussianBlur, post_blur_func=None, blur_size=15):
     if pre_blur_func is not None:
         bgr_img = pre_blur_func(bgr_img, blur_size)
 
@@ -39,7 +39,7 @@ def get_bgr_thresholdimg_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur,
 
     return threshold_img
 
-def get_hsv_thresholding_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur, post_blur_func=None, blur_size=15):
+def get_hsv_thresholding_img(bgr_img, lower, upper, pre_blur_func=GaussianBlur, post_blur_func=None, blur_size=15):
     if pre_blur_func is not None:
         bgr_img = pre_blur_func(bgr_img, blur_size)
 
@@ -56,7 +56,7 @@ def get_hsv_thresholding_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur,
 
     return threshold_img
 
-def get_canny_img(bgr_img, lower, upper, pre_blur_func=GauusianBulur, post_blur_func=None, blur_size=15):
+def get_canny_img(bgr_img, lower, upper, pre_blur_func=GaussianBlur, post_blur_func=None, blur_size=15):
     if pre_blur_func is not None:
         bgr_img = pre_blur_func(bgr_img, blur_size)
 
@@ -110,6 +110,7 @@ def get_rect_contour_img(bgr_img, binary_img):
 
     for cluster in rect_contour_clusters:
         cluster.sort(key=lambda x: x[1])
+    print(rect_contour_clusters)
 
     rect_contours = []
     for cluster in rect_contour_clusters:
