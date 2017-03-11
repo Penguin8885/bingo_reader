@@ -14,7 +14,7 @@ if __name__ == '__main__':
         print(file_name)
         img = cv2.imread("./data/3001-3200/"+file_name)
 
-        threshold_img = ia.get_hsv_thresholding_img(img, [30,100,255], [180,255,100])
+        threshold_img = ia.get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
         _, contours_img = ia.get_rect_contour_img(img, threshold_img)
 
-        cv2.imwrite("./result/3001-3200/"+file_name, contours_img)
+        cv2.imwrite("./result/"+file_name, contours_img)
