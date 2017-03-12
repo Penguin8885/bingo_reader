@@ -43,10 +43,26 @@ def show_frame_img(file_name, nc=True):
     plt.imshow(frame_img)
     plt.show()
 
+def show_numbers_img(file_name):
+    img = cv2.imread(file_name)
+
+    threshold_img = br.get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
+    frame = br.get_frame(img, threshold_img)
+    numbers_img = br.get_numbers_img(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=br.GaussianBlur)
+
+    for i in range(25):
+        number_img = numbers_img[i]
+        cv2.imwrite("number"+str(i)+"_4877.jpg", number_img)
+        number_img = cv2.cvtColor(number_img, cv2.COLOR_GRAY2RGB)
+        plt.imshow(number_img)
+        plt.show()
+
+
 if __name__ == '__main__':
     #4879
     #4874,4877,4881
     file_name = "./data/IMG_4877.jpg"
 
     #show_thresholding_img(file_name)
-    show_frame_img(file_name, nc=True)
+    #show_frame_img(file_name, nc=True)
+    show_numbers_img(file_name)

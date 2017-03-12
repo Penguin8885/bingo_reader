@@ -263,10 +263,37 @@ def optimize(rect_contours0):
 
 
 
-def write_img(file_name, img, frame, num):
+def get_numbers_img(img, frame, lower, upper, pre_blur_func=GaussianBlur, post_blur_func=None, blur_size=5):
+    numbers_img = []
+    for cnt in frame:
+        rect = img[cnt[1]:(cnt[1]+cnt[3]), cnt[0]:(cnt[0]+cnt[2])]
+        rect = cv2.resize(rect, (1000,1000))
+
+        threshold_img = get_hsv_thresholding_img(
+            rect,
+            lower,
+            upper,
+            pre_blur_func=pre_blur_func,
+            post_blur_func=post_blur_func,
+            blur_size=blur_size
+        )
+        threshold_img = cv2.bitwise_not(threshold_img)
+
+        numbers_img.append(threshold_img)
+    return numbers_img
+
+def get_numbers(numbers_img):
+    numbers = [70]*25
+    return numbers
+
+
+
+def write_img(file_name, img, frame, numbers):
     #draw image
     frame_img = np.copy(img)
-    for cnt in frame:
+    for i in range(25):
+        ##draw frame
+        cnt = frame[i]
         cv2.rectangle(frame_img, (cnt[0],cnt[1]), (cnt[0]+cnt[2],cnt[1]+cnt[3]), (0,0,255), 10)
         cv2.putText(
             frame_img,
@@ -278,6 +305,19 @@ def write_img(file_name, img, frame, num):
             8, #line thickness
             cv2.LINE_AA
         )
+
+        ##draw number
+        cv2.putText(
+            frame_img,
+            str(numbers[i]),
+            (cnt[0],cnt[1]+65),
+            cv2.FONT_HERSHEY_PLAIN,
+            5, #font size
+            (255,0,0),
+            8, #line thickness
+            cv2.LINE_AA
+        )
+
     #save
     cv2.imwrite(file_name, frame_img)
 
@@ -290,4 +330,6 @@ if __name__ == '__main__':
         img = cv2.imread("./data/"+file_name)
         threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
         frame = get_frame(img, threshold_img)
-        write_img("./result/"+file_name, img, frame, None)
+        numbers_img = get_numbers_img(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
+        numbers = get_numbers(numbers_img)
+        write_img("./result/"+file_name, img, frame, numbers)
