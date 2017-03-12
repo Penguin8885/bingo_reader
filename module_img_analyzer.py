@@ -314,7 +314,7 @@ def optimize(rect_contours0):
                 print("add", i, j)
                 rect_contours.append([med_l[i],med_t[j],(med_r[i]-med_l[i]),(med_b[j]-med_t[j]), "add"])
 
-    if len(rect_contours) == 25:
+    if len(rect_contours) != 25:
         print("error : the number of cntours is not 25")
         return None
 
