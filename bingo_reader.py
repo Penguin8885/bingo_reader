@@ -11,9 +11,8 @@ if __name__ == '__main__':
 
     file_names = os.listdir("./data/3001-3200/")
     for file_name in file_names:
-        print(file_name)
+        print(file_name, "\a")
         img = cv2.imread("./data/3001-3200/"+file_name)
-
         threshold_img = ia.get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
         _, contours_img = ia.get_rect_contour_img(img, threshold_img)
 

@@ -135,9 +135,9 @@ def get_rect_contour_img(bgr_img, binary_img):
             rect_contours.append(cnt)
 
     ########
-    print("# \t (x, y, area, ratio)")
+    print("# \t (x0, y0, x1, y1) (area, ratio) --modification")
     for cnt in rect_contours:
-        print(rect_contours.index(cnt), "\t", (cnt[0],cnt[1],cnt[2]*cnt[3],cnt[2]/cnt[3]))
+        print(rect_contours.index(cnt), "\t", (cnt[0],cnt[1],cnt[0]+cnt[2],cnt[1]+cnt[3]), (cnt[2]*cnt[3],"{:.4f}".format(cnt[2]/cnt[3])), "--"+str(cnt[4]) if len(cnt) == 5 else "")
     ########
 
     #draw image
@@ -173,6 +173,11 @@ def optimize(rect_contours0):
     #copy
     rect_contours = rect_contours0.copy()
 
+    #array of the median
+    med_l = []
+    med_r = []
+    med_t = []
+    med_b = []
 
     ######## <step 1> Correction about x-axis ########
 
@@ -210,6 +215,9 @@ def optimize(rect_contours0):
         median_r = sorted_[int(len(sorted_)/2+0.5)]
         median_r = median_r[0] + median_r[2]
 
+        med_l.append(median_l)
+        med_r.append(median_r)
+
         ##modify
         for cnt in cluster:
             ratio = cnt[2] / cnt[3]
@@ -217,9 +225,11 @@ def optimize(rect_contours0):
                 if abs(cnt[0]-median_l) > 30:
                     cnt[2] += cnt[0] - median_l
                     cnt[0] = median_l
+                    cnt.append("correct")
                 if abs(cnt[0]+cnt[2]-median_r) > 30:
                     cnt[2] += median_r - (cnt[0] + cnt[2])
-
+                    if len(cnt) == 4:
+                        cnt.append("correct")
     #to gather into one array
     rect_contours = []
     for cluster in rect_contour_clusters:
@@ -244,8 +254,8 @@ def optimize(rect_contours0):
             base = cnt
             cluster = [cnt]
     rect_contour_clusters.append(cluster)
-
     #optimize about y-axis
+
     for cluster in rect_contour_clusters:
         ##search top medial
         sorted_ = sorted(cluster, key=lambda x: x[1])
@@ -263,6 +273,9 @@ def optimize(rect_contours0):
         median_b = sorted_[int(len(sorted_)/2+0.5)]
         median_b = median_b[1] + median_b[3]
 
+        med_t.append(median_t)
+        med_b.append(median_b)
+
         ##modify
         for cnt in cluster:
             ratio = cnt[2] / cnt[3]
@@ -270,8 +283,11 @@ def optimize(rect_contours0):
                 if abs(cnt[1]-median_t) > 30:
                     cnt[3] += cnt[1] - median_t
                     cnt[1] = median_t
+                    cnt.append("correct")
                 if abs(cnt[1]+cnt[3]-median_b) > 30:
                     cnt[3] += median_b - (cnt[1] + cnt[3])
+                    if len(cnt) == 4:
+                        cnt.append("correct")
 
     #to gather into one array
     rect_contours = []
@@ -282,5 +298,20 @@ def optimize(rect_contours0):
 
     ######## <step 3> fill the blank ########
 
+    #search the blank and fill it
+    med_l.sort()
+    med_r.sort()
+    med_t.sort()
+    med_b.sort()
+    for i in range(5):
+        for j in range(5):
+            flag = False
+            for cnt in rect_contours[:]:
+                if abs(cnt[0]-med_l[i]) < 100 and abs(cnt[1]-med_t[j]) < 100:
+                    flag = True
+                    break
+            if flag is False:
+                print("add", i, j)
+                rect_contours.append([med_l[i],med_t[j],(med_r[i]-med_l[i]),(med_b[j]-med_t[j]), "add"])
 
     return rect_contours
