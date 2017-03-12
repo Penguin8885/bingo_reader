@@ -52,7 +52,7 @@ def show_numbers_img(file_name):
 
     for i in range(25):
         number_img = numbers_img[i]
-        cv2.imwrite("number"+str(i)+"_4877.jpg", number_img)
+        cv2.imwrite("number"+str(i)+"_sample.jpg", number_img)
         number_img = cv2.cvtColor(number_img, cv2.COLOR_GRAY2RGB)
         plt.imshow(number_img)
         plt.show()
