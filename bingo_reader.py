@@ -283,6 +283,27 @@ def get_numbers_img(img, frame, lower, upper, pre_blur_func=GaussianBlur, post_b
     return numbers_img
 
 def get_numbers(numbers_img):
+    numbers = []
+    for i in range(25):
+        #get contour
+        _, contours, _ = cv2.findContours(numbers_img[i], cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        #get rect contour
+        print(i)
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+            if w*h < 50000 or w*h > 500000:
+                continue
+            if w*h < 100000:
+                print(1, cv2.contourArea(cnt), cv2.arcLength(cnt,True), w, h, w*h, h/w)
+            else:
+                print("?", cv2.contourArea(cnt), cv2.arcLength(cnt,True), w, h, w*h, h/w)
+            char_img = numbers_img[i][y:(y+h), x:(x+w)]
+            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
+            plt.imshow(char_img)
+            plt.show()
+
+        numbers.append("")
     numbers = [70]*25
     return numbers
 
