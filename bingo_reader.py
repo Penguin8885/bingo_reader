@@ -9,10 +9,10 @@ import module_img_analyzer as ia
 
 if __name__ == '__main__':
 
-    file_names = os.listdir("./data/3001-3200/")
+    file_names = os.listdir("./data/")
     for file_name in file_names:
         print(file_name, "\a")
-        img = cv2.imread("./data/3001-3200/"+file_name)
+        img = cv2.imread("./data/"+file_name)
         threshold_img = ia.get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
         _, contours_img = ia.get_rect_contour_img(img, threshold_img)
 

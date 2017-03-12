@@ -48,13 +48,13 @@ def write_imgs(file_name, output_name):
 
     cv2.imwrite("0_" + output_name, threshold_img)
     cv2.imwrite("1_" + output_name, noisy_contour_img)
-    cv2.imwrite("2_" + output_name, rect_contour_img)
+    cv2.imwrite("2_" + output_name, contour_img)
 
 
 if __name__ == '__main__':
     #4879
     #4874,4877,4881
-    file_name = "./data/3001-3200/IMG_4874.jpg"
+    file_name = "./data/IMG_4877.jpg"
     #show_thresholding_img(file_name)
     #show_noisy_contour_img(file_name)
     show_contour_img(file_name)
