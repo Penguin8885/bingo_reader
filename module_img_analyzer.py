@@ -105,7 +105,7 @@ def get_rect_contour_img(bgr_img, binary_img):
     rect_contours = noise_cancellation(rect_contours)
 
     #optimize for bingo cards
-    #rect_contours = optimize(rect_contours)
+    rect_contours = optimize(rect_contours)
 
     #sort
     ##sort with x-axis
@@ -127,7 +127,6 @@ def get_rect_contour_img(bgr_img, binary_img):
     ##sort with y-axis
     for cluster in rect_contour_clusters:
         cluster.sort(key=lambda x: x[1])
-    print(rect_contour_clusters)
 
     ##to gather into one array
     rect_contours = []
@@ -197,20 +196,28 @@ def optimize(rect_contours0):
     for cluster in rect_contour_clusters:
         ##search left medial
         sorted_ = sorted(cluster, key=lambda x: x[0])
+        for cnt in sorted_[:]:
+            ratio = cnt[2] / cnt[3]
+            if ratio < 0.95 or ratio > 1.05:
+                sorted_.remove(cnt)
         median_l = sorted_[int(len(sorted_)/2)][0]
         ##search right median
         sorted_ = sorted(cluster, key=lambda x: x[0]+x[2])
+        for cnt in sorted_[:]:
+            ratio = cnt[2] / cnt[3]
+            if ratio < 0.95 or ratio > 1.05:
+                sorted_.remove(cnt)
         median_r = sorted_[int(len(sorted_)/2+0.5)]
         median_r = median_r[0] + median_r[2]
 
         ##modify
         for cnt in cluster:
-            ratio = cnt[2]/cnt[3]
+            ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
-                if abs(cnt[0]-median_l) > 40:
+                if abs(cnt[0]-median_l) > 30:
                     cnt[2] += cnt[0] - median_l
                     cnt[0] = median_l
-                if abs(cnt[0]+cnt[2]-median_r) > 40:
+                if abs(cnt[0]+cnt[2]-median_r) > 30:
                     cnt[2] += median_r - (cnt[0] + cnt[2])
 
     #to gather into one array
@@ -242,20 +249,28 @@ def optimize(rect_contours0):
     for cluster in rect_contour_clusters:
         ##search top medial
         sorted_ = sorted(cluster, key=lambda x: x[1])
+        for cnt in sorted_[:]:
+            ratio = cnt[2] / cnt[3]
+            if ratio < 0.95 or ratio > 1.05:
+                sorted_.remove(cnt)
         median_t = sorted_[int(len(sorted_)/2)][1]
         ##search bottom median
         sorted_ = sorted(cluster, key=lambda x: x[1]+x[3])
+        for cnt in sorted_[:]:
+            ratio = cnt[2] / cnt[3]
+            if ratio < 0.95 or ratio > 1.05:
+                sorted_.remove(cnt)
         median_b = sorted_[int(len(sorted_)/2+0.5)]
         median_b = median_b[1] + median_b[3]
 
         ##modify
         for cnt in cluster:
-            ratio = cnt[2]/cnt[3]
+            ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
-                if abs(cnt[1]-median_t) > 40:
+                if abs(cnt[1]-median_t) > 30:
                     cnt[3] += cnt[1] - median_t
                     cnt[1] = median_t
-                if abs(cnt[1]+cnt[3]-median_b) > 40:
+                if abs(cnt[1]+cnt[3]-median_b) > 30:
                     cnt[3] += median_b - (cnt[1] + cnt[3])
 
     #to gather into one array
