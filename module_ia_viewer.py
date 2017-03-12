@@ -52,7 +52,9 @@ def write_imgs(file_name, output_name):
 
 
 if __name__ == '__main__':
-    file_name = "./data/3001-3200/IMG_4879.jpg"#4887
+    #4879
+    #4874,4877,4881
+    file_name = "./data/3001-3200/IMG_4874.jpg"
     #show_thresholding_img(file_name)
     #show_noisy_contour_img(file_name)
     show_contour_img(file_name)
