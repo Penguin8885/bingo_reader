@@ -263,8 +263,8 @@ def optimize(rect_contours0):
 
 
 
-def get_numbers_img(img, frame, lower, upper, pre_blur_func=GaussianBlur, post_blur_func=None, blur_size=5):
-    numbers_img = []
+def get_number_imgs(img, frame, lower, upper, pre_blur_func=GaussianBlur, post_blur_func=None, blur_size=5):
+    number_imgs = []
     for cnt in frame:
         rect = img[cnt[1]:(cnt[1]+cnt[3]), cnt[0]:(cnt[0]+cnt[2])]
         rect = cv2.resize(rect, (1000,1000))
@@ -279,31 +279,29 @@ def get_numbers_img(img, frame, lower, upper, pre_blur_func=GaussianBlur, post_b
         )
         threshold_img = cv2.bitwise_not(threshold_img)
 
-        numbers_img.append(threshold_img)
-    return numbers_img
+        number_imgs.append(threshold_img)
+    return number_imgs
 
-def get_numbers(numbers_img):
+def get_numbers(number_imgs):
     numbers = []
-    for i in range(25):
+    for number_img in number_imgs:
         #get contour
-        _, contours, _ = cv2.findContours(numbers_img[i], cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cp = np.array(number_img)
+        _, contours, _ = cv2.findContours(number_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        #get rect contour
-        print(i)
+        #get rect contour & number
         for cnt in contours:
             x, y, w, h = cv2.boundingRect(cnt)
-            if w*h < 50000 or w*h > 500000:
+            if w*h > 900000:
                 continue
-            if w*h < 100000:
-                print(1, cv2.contourArea(cnt), cv2.arcLength(cnt,True), w, h, w*h, h/w)
-            else:
-                print("?", cv2.contourArea(cnt), cv2.arcLength(cnt,True), w, h, w*h, h/w)
-            char_img = numbers_img[i][y:(y+h), x:(x+w)]
+            char_img = cp[y:(y+h), x:(x+w)]
             char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
             plt.imshow(char_img)
             plt.show()
+            n = input()
+            print(n, cv2.contourArea(cnt), cv2.arcLength(cnt,True), w, h, w*h, h/w)
 
-        numbers.append("")
+        #numbers.append("")
     numbers = [70]*25
     return numbers
 
@@ -351,6 +349,6 @@ if __name__ == '__main__':
         img = cv2.imread("./data/"+file_name)
         threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
         frame = get_frame(img, threshold_img)
-        numbers_img = get_numbers_img(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
-        numbers = get_numbers(numbers_img)
-        write_img("./result/"+file_name, img, frame, numbers)
+        number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
+        numbers = get_numbers(number_imgs)
+        #write_img("./result/"+file_name, img, frame, numbers)
