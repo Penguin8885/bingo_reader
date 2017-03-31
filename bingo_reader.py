@@ -283,43 +283,67 @@ def get_number_imgs(img, frame, lower, upper, pre_blur_func=GaussianBlur, post_b
     return number_imgs
 
 def get_numbers(number_imgs):
-    #load number figures
-    num_img = []
+    #load base number figures
+    base_num_img = []
     for i in range(10):
         img = np.load("./num_img/figure_"+str(i)+".npy")
-        img = cv2.resize(img, (20,20))
         img = (img<127).astype(np.int)
-        num_img.append(img)
-        print(img)
+        img[img==0] = -1
+        base_num_img.append(img)
 
-
+    #convert number_imgs to numbers
     numbers = []
-    for number_img in number_imgs:
+    for i in range(25):
+        #skip free zone
+        if i == 12:
+            numbers.append(0)
+            continue
+
+        number_img = number_imgs[i]
         #get contour
         cp = np.array(number_img)
         _, contours, _ = cv2.findContours(number_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        #get rect contour & number
+        #get rect contour & number charactor images
+        char_imgs = []
         for cnt in contours:
             x, y, w, h = cv2.boundingRect(cnt)
             if w*h > 900000 or w*h < 50000:
-                continue
-            char_img = cp[y:(y+h), x:(x+w)]
-            char_img = cv2.resize(char_img, (20,20))
+                continue #filter
+            char_img = cv2.resize(cp[y:(y+h), x:(x+w)], (1000,1000))
+            char_imgs.append([x, char_img]) #get char_img
+        char_imgs.sort(key=lambda x:x[0])
 
+        #calculate correlation & recognize number
+        number = 0
+        for char_img in char_imgs:
+            char_img = char_img[1]
+
+            #get the correlation & the number
             c = (char_img<127).astype(np.int)
-            correlation = [int(sum(sum(num_img[i] * c))/4) for i in range(10)]
+            c[c==0] = -1
+            correlation = [int(sum(sum(base_num_img[i]*c))/10000) for i in range(10)]
+            for i in range(10):
+                if correlation[i] < 70:
+                    correlation[i] = 0 #filter
             n = correlation.index(max(correlation))
-            print(c)
-            print(correlation)
-            print(n)
 
-            plt.imshow(cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB))
-            plt.show()
-            print(cv2.contourArea(cnt), cv2.arcLength(cnt,True), w, h, w*h, h/w)
+            #exception check
+            if sum(correlation) > 100 and max(correlation) < 90:
+                print(n, max(correlation), correlation)
+                plt.imshow(cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB))
+                plt.show()
 
-        #numbers.append("")
-    numbers = [70]*25
+            #result
+            number = number*10 + n
+
+        #append results
+        if number == 0:
+            print("warning: can not read number, guess the number is 40")
+            number = 40
+        numbers.append(number)
+
+    print(numbers)
     return numbers
 
 
@@ -362,10 +386,10 @@ def write_img(file_name, img, frame, numbers):
 if __name__ == '__main__':
     file_names = os.listdir("./data/")
     for file_name in file_names:
-        print(file_name, "\a")
+        print("\n", file_name, "\a")
         img = cv2.imread("./data/"+file_name)
         threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
         frame = get_frame(img, threshold_img)
         number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
         numbers = get_numbers(number_imgs)
-        #write_img("./result/"+file_name, img, frame, numbers)
+        write_img("./result/"+file_name, img, frame, numbers)
