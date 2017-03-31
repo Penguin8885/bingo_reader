@@ -1,4 +1,5 @@
 import os
+import csv
 import cv2
 import numpy as np
 import matplotlib
@@ -385,11 +386,18 @@ def write_img(file_name, img, frame, numbers):
 
 if __name__ == '__main__':
     file_names = os.listdir("./data/")
-    for file_name in file_names:
-        print("\n", file_name, "\a")
-        img = cv2.imread("./data/"+file_name)
-        threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
-        frame = get_frame(img, threshold_img)
-        number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
-        numbers = get_numbers(number_imgs)
-        write_img("./result/"+file_name, img, frame, numbers)
+    with open('bingo_numbers.csv', 'w') as f:
+        for file_name in file_names:
+            print("\n", file_name, "\a")
+            img = cv2.imread("./data/"+file_name)
+            threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
+            frame = get_frame(img, threshold_img)
+            number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
+            numbers = get_numbers(number_imgs)
+            #write_img("./result/"+file_name, img, frame, numbers)
+
+            #output numbers to csv
+            root, ext = os.path.splitext(file_name)
+            numbers.insert(0, root)
+            writer = csv.writer(f, lineterminator='\n')
+            writer.writerow(numbers)
