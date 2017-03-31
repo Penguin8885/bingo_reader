@@ -283,6 +283,16 @@ def get_number_imgs(img, frame, lower, upper, pre_blur_func=GaussianBlur, post_b
     return number_imgs
 
 def get_numbers(number_imgs):
+    #load number figures
+    num_img = []
+    for i in range(10):
+        img = np.load("./num_img/figure_"+str(i)+".npy")
+        img = cv2.resize(img, (20,20))
+        img = (img<127).astype(np.int)
+        num_img.append(img)
+        print(img)
+
+
     numbers = []
     for number_img in number_imgs:
         #get contour
@@ -292,14 +302,21 @@ def get_numbers(number_imgs):
         #get rect contour & number
         for cnt in contours:
             x, y, w, h = cv2.boundingRect(cnt)
-            if w*h > 900000:
+            if w*h > 900000 or w*h < 50000:
                 continue
             char_img = cp[y:(y+h), x:(x+w)]
-            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
-            plt.imshow(char_img)
+            char_img = cv2.resize(char_img, (20,20))
+
+            c = (char_img<127).astype(np.int)
+            correlation = [int(sum(sum(num_img[i] * c))/4) for i in range(10)]
+            n = correlation.index(max(correlation))
+            print(c)
+            print(correlation)
+            print(n)
+
+            plt.imshow(cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB))
             plt.show()
-            n = input()
-            print(n, cv2.contourArea(cnt), cv2.arcLength(cnt,True), w, h, w*h, h/w)
+            print(cv2.contourArea(cnt), cv2.arcLength(cnt,True), w, h, w*h, h/w)
 
         #numbers.append("")
     numbers = [70]*25
