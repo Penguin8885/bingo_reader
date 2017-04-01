@@ -50,7 +50,8 @@ def show_number_imgs(file_name):
     frame = br.get_frame(img, threshold_img)
     number_imgs = br.get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=br.GaussianBlur)
 
-    for number_img in number_imgs:
+    for i in range(25):
+        number_img = number_imgs[i]
         cv2.imwrite("number"+str(i)+"_sample.jpg", number_img)
         number_img = cv2.cvtColor(number_img, cv2.COLOR_GRAY2RGB)
         plt.imshow(number_img)
@@ -99,11 +100,26 @@ def show_final_img(file_name):
 
 
 if __name__ == '__main__':
-    #4879
-    #4874,4877,4881
-    file_name = "./data/IMG_4877.jpg"
+    print("file number : ", end='')
+    file_num = input()
+    file_name = "./data/" + file_num + ".jpg"
+    print("\n===========================")
+    print("0 : threshold_img")
+    print("1 : frame_img (noisy)")
+    print("2 : frame_img")
+    print("3 : number_imgs")
+    print("4 : final_img")
+    print("===========================")
+    print("select type : ", end='')
+    n = int(input())
 
-    #show_thresholding_img(file_name)
-    #show_frame_img(file_name, nc=True)
-    #show_number_imgs(file_name)
-    show_final_img(file_name)
+    if n == 0:
+        show_thresholding_img(file_name)
+    elif n == 1:
+        show_frame_img(file_name, nc=False)
+    elif n == 2:
+        show_frame_img(file_name, nc=True)
+    elif n == 3:
+        show_number_imgs(file_name)
+    elif n == 4:
+        show_final_img(file_name)
