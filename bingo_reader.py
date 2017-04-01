@@ -149,14 +149,14 @@ def optimize(rect_contours0):
             ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
                 sorted_.remove(cnt)
-        median_l = sorted_[int(len(sorted_)/2)][0]
+        median_l = sorted_[int(len(sorted_)/2-1)][0]
         ##search right median
         sorted_ = sorted(cluster, key=lambda x: x[0]+x[2])
         for cnt in sorted_[:]:
             ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
                 sorted_.remove(cnt)
-        median_r = sorted_[int(len(sorted_)/2+0.5)]
+        median_r = sorted_[int(len(sorted_)/2-0.5)]
         median_r = median_r[0] + median_r[2]
 
         med_l.append(median_l)
@@ -201,20 +201,20 @@ def optimize(rect_contours0):
     #optimize about y-axis
 
     for cluster in rect_contour_clusters:
-        ##search top medial
+        ##search top median
         sorted_ = sorted(cluster, key=lambda x: x[1])
         for cnt in sorted_[:]:
             ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
                 sorted_.remove(cnt)
-        median_t = sorted_[int(len(sorted_)/2)][1]
+        median_t = sorted_[int(len(sorted_)/2-1)][1]
         ##search bottom median
         sorted_ = sorted(cluster, key=lambda x: x[1]+x[3])
         for cnt in sorted_[:]:
             ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
                 sorted_.remove(cnt)
-        median_b = sorted_[int(len(sorted_)/2+0.5)]
+        median_b = sorted_[int(len(sorted_)/2-0.5)]
         median_b = median_b[1] + median_b[3]
 
         med_t.append(median_t)
