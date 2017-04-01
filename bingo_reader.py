@@ -1,3 +1,4 @@
+import sys
 import os
 import csv
 import cv2
@@ -258,7 +259,7 @@ def optimize(rect_contours0):
 
     if len(rect_contours) != 25:
         print("error : the number of cntours is not 25")
-        return None
+        sys.exit(0)
 
     return rect_contours
 
@@ -345,6 +346,12 @@ def get_numbers(number_imgs):
         numbers.append(number)
 
     print(numbers)
+
+    #check duplication
+    if len(np.unique(numbers)) < 25:
+        print("error : Duplication is detected")
+        sys.exit(0)
+
     return numbers
 
 
@@ -394,7 +401,7 @@ if __name__ == '__main__':
             frame = get_frame(img, threshold_img)
             number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
             numbers = get_numbers(number_imgs)
-            #write_img("./result/"+file_name, img, frame, numbers)
+            write_img("./result/"+file_name, img, frame, numbers)
 
             #output numbers to csv
             root, ext = os.path.splitext(file_name)
