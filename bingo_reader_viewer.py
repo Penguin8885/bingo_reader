@@ -100,7 +100,7 @@ def show_final_img(file_name):
 if __name__ == '__main__':
     print("file number : ", end='')
     file_num = input()
-    file_name = "./data/" + file_num + ".jpg"
+    file_name = "./exam_data/" + file_num + ".jpg"
     print("\n===========================")
     print("0 : threshold_img")
     print("1 : frame_img (noisy)")
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     elif n == 1:
         show_frame_img(file_name, nc=False)
     elif n == 2:
-        show_frame_img(file_name, nc=1)
+        show_frame_img(file_name, nc=0)
     elif n == 3:
         show_frame_img(file_name, nc=True)
     elif n == 4:

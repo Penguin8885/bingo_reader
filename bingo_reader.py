@@ -42,39 +42,20 @@ def get_frame(bgr_img, binary_img, nc=True, view_type=1):
         x, y, w, h = cv2.boundingRect(cnt)
         rect_contours.append([x, y, w, h])
 
+    #noise cancellation
     if nc is True or nc == 0:
-        #noise cancellation
         rect_contours = noise_cancellation(rect_contours)
+
+    #sort and configure matrix
+    rect_contours = configure_matrix(rect_contours)
+
+    #optimize for bingo cards
     if nc is True or nc != 0:
-        #optimize for bingo cards
         rect_contours = optimize(rect_contours)
 
-    #sort
-    ##sort with x-axis
-    rect_contours.sort(key=lambda x: x[0])
-
-    ##clustering with x-axis
-    base = rect_contours[0]
-    cluster = []
-    rect_contour_clusters = []
-    for cnt in rect_contours:
-        if abs(base[0] - cnt[0]) < 200:
-            cluster.append(cnt)
-        else:
-            rect_contour_clusters.append(cluster)
-            base = cnt
-            cluster = [cnt]
-    rect_contour_clusters.append(cluster)
-
-    ##sort with y-axis
-    for cluster in rect_contour_clusters:
-        cluster.sort(key=lambda x: x[1])
-
-    ##to gather into one array
-    rect_contours = []
-    for cluster in rect_contour_clusters:
-        for cnt in cluster:
-            rect_contours.append(cnt)
+    #convert matrix to list
+    rect_contours = [rect_contours[i][j] for i in range(5) for j in range(5)]
+    rect_contours = [cnt for cnt in rect_contours if cnt is not None]
 
     ########
     if view_type == 1:
@@ -84,8 +65,8 @@ def get_frame(bgr_img, binary_img, nc=True, view_type=1):
                     rect_contours.index(cnt), "\t",
                     (cnt[0],cnt[1],cnt[0]+cnt[2],cnt[1]+cnt[3]),
                     (cnt[2]*cnt[3],"{:.4f}".format(cnt[2]/cnt[3])), "  ",
-                    "--"+str(cnt[4])
                 )
+                "--"+str(cnt[4])
     elif view_type == 2:
         print("# \t (x0, y0, x1, y1) (area, ratio) --modification")
         for cnt in rect_contours:
@@ -103,6 +84,49 @@ def get_frame(bgr_img, binary_img, nc=True, view_type=1):
 
     return rect_contours
 
+def center(cnt):
+    return (cnt[0]+cnt[2]/2, cnt[1]+cnt[3]/2)
+
+def configure_matrix(rect_contours):
+    #clustering with x
+    sorted_x = sorted(rect_contours, key=lambda x: center(x)[0])
+    base_index = 0
+    base_center = center(sorted_x[0])
+    clusters_x = []
+    for i, cnt in enumerate(sorted_x):
+        if abs(base_center[0] - center(cnt)[0]) > 200:
+            clusters_x.append(sorted_x[base_index:i])
+            base_index = i
+            base_center = center(cnt)
+    clusters_x.append(sorted_x[base_index:])
+
+    #clustering with y
+    sorted_y = sorted(rect_contours, key=lambda x: center(x)[1])
+    base_index = 0
+    base_center = center(sorted_y[0])
+    clusters_y = []
+    for i, cnt in enumerate(sorted_y):
+        if abs(base_center[1] - center(cnt)[1]) > 200:
+            clusters_y.append(sorted_y[base_index:i])
+            base_index = i
+            base_center = center(cnt)
+    clusters_y.append(sorted_y[base_index:])
+
+    #make matrix
+    rc_mat = [[None for i in range(5)] for j in range(5)]
+    for cnt in rect_contours:
+        for i, x_line in enumerate(clusters_x):
+            for j, y_line in enumerate(clusters_y):
+                if cnt in x_line and cnt in y_line:
+                    rc_mat[i][j] = cnt
+                    print(i,j,rc_mat[i][j])
+                    break
+            else:
+                continue
+            break
+
+    return rc_mat
+
 def noise_cancellation(rect_contours):
     passer = []
     for cnt in rect_contours:
@@ -118,161 +142,76 @@ def optimize(rect_contours0):
     #copy
     rect_contours = rect_contours0.copy()
 
-    #array of the median
-    med_l = []
-    med_r = []
-    med_t = []
-    med_b = []
-
-    ######## <step 1> Correction about x-axis ########
-
-    #clustering with x-axis
-    ##sort with x-axis
-    rect_contours.sort(key=lambda x: x[0])
-    ##clustering with x-axis
-    base = rect_contours[0]
-    cluster = []
-    rect_contour_clusters = []
-    for cnt in rect_contours:
-        if abs(base[0] - cnt[0]) < 200:
-            cluster.append(cnt)
-        else:
-            rect_contour_clusters.append(cluster)
-            base = cnt
-            cluster = [cnt]
-    rect_contour_clusters.append(cluster)
-
-    #optimize about x-axis
-    for cluster in rect_contour_clusters:
-        ##search left medial
-        sorted_ = sorted(cluster, key=lambda x: x[0])
-        for cnt in sorted_[:]:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                sorted_.remove(cnt)
-        if len(serted_) > 0:
-            median_l = sorted_[int(len(sorted_)/2-1)][0]
-        else:
-            median_l = cluster[0][0]
-        ##search right median
-        sorted_ = sorted(cluster, key=lambda x: x[0]+x[2])
-        for cnt in sorted_[:]:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                sorted_.remove(cnt)
-        if len(serted_) > 0:
-            median_r = sorted_[int(len(sorted_)/2-0.5)]
-            median_r = median_r[0] + median_r[2]
-        else:
-            median_r = cluster[0][0] + cluster[0][2]
-
-        med_l.append(median_l)
-        med_r.append(median_r)
-
-        ##modify
-        for cnt in cluster:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                if abs(cnt[0]-median_l) > 30:
-                    cnt[2] += cnt[0] - median_l
-                    cnt[0] = median_l
-                    cnt.append("correct")
-                if abs(cnt[0]+cnt[2]-median_r) > 30:
-                    cnt[2] += median_r - (cnt[0] + cnt[2])
-                    if len(cnt) == 4:
-                        cnt.append("correct")
-    #to gather into one array
-    rect_contours = []
-    for cluster in rect_contour_clusters:
-        for cnt in cluster:
-            rect_contours.append(cnt)
-
-
-    ######## <step 2> Correction about y-axis ########
-
-    #clustering with y-axis
-    ##sort with y-axis
-    rect_contours.sort(key=lambda x: x[1])
-    ##clustering with y-axis
-    base = rect_contours[0]
-    cluster = []
-    rect_contour_clusters = []
-    for cnt in rect_contours:
-        if abs(base[1] - cnt[1]) < 200:
-            cluster.append(cnt)
-        else:
-            rect_contour_clusters.append(cluster)
-            base = cnt
-            cluster = [cnt]
-    rect_contour_clusters.append(cluster)
-    #optimize about y-axis
-
-    for cluster in rect_contour_clusters:
-        ##search top median
-        sorted_ = sorted(cluster, key=lambda x: x[1])
-        for cnt in sorted_[:]:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                sorted_.remove(cnt)
-        if len(serted_) > 0:
-            median_t = sorted_[int(len(sorted_)/2-1)][1]
-        else:
-            median_t = cluster[0][1]
-        ##search bottom median
-        sorted_ = sorted(cluster, key=lambda x: x[1]+x[3])
-        for cnt in sorted_[:]:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                sorted_.remove(cnt)
-        if len(serted_) > 0:
-            median_b = sorted_[int(len(sorted_)/2-0.5)]
-            median_b = median_b[1] + median_b[3]
-        else:
-            median_b = cluster[0][1] + cluster[0][3]
-
-        med_t.append(median_t)
-        med_b.append(median_b)
-
-        ##modify
-        for cnt in cluster:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                if abs(cnt[1]-median_t) > 30:
-                    cnt[3] += cnt[1] - median_t
-                    cnt[1] = median_t
-                    cnt.append("correct")
-                if abs(cnt[1]+cnt[3]-median_b) > 30:
-                    cnt[3] += median_b - (cnt[1] + cnt[3])
-                    if len(cnt) == 4:
-                        cnt.append("correct")
-
-    #to gather into one array
-    rect_contours = []
-    for cluster in rect_contour_clusters:
-        for cnt in cluster:
-            rect_contours.append(cnt)
-
-
-    ######## <step 3> fill the blank ########
-
-    #search the blank and fill it
-    med_l.sort()
-    med_r.sort()
-    med_t.sort()
-    med_b.sort()
+    #convert None -> tmp_cnt
     for i in range(5):
         for j in range(5):
-            flag = False
-            for cnt in rect_contours[:]:
-                if abs(cnt[0]-med_l[i]) < 100 and abs(cnt[1]-med_t[j]) < 100:
-                    flag = True
-                    break
-            if flag is False:
-                rect_contours.append([med_l[i],med_t[j],(med_r[i]-med_l[i]),(med_b[j]-med_t[j]), "add"])
+            if rect_contours[i][j] is None:
+                rect_contours[i][j] = [1, 10, 1, 10, "add"] #with label
 
-    if len(rect_contours) != 25:
-        print("error : the number of cntours is not 25")
-        sys.exit(0)
+    #optimize about x
+    rc = rect_contours.copy()
+    for i, col in enumerate(rc):
+        passer = [cnt for cnt in col if cnt[2]/cnt[3] > 0.95 and cnt[2]/cnt[3] < 1.05]
+        not_passer = [cnt for cnt in col if cnt[2]/cnt[3] <= 0.95 or cnt[2]/cnt[3] >= 1.05]
+
+        if len(not_passer) == 0:
+            continue
+        if len(passer) == 0:
+            continue
+
+        #calculate median
+        sorted_ = sorted(passer, key=lambda x: x[0])
+        median_l = sorted_[int(len(sorted_)/2-1)][0]
+        sorted_ = sorted(passer, key=lambda x: x[0]+x[2])
+        median_r = sorted_[int(len(sorted_)/2-0.5)]
+        median_r = median_r[0] + median_r[2]
+
+        #correct
+        for cnt in not_passer:
+            j = rc[i].index(cnt)
+            if abs(cnt[0]-median_l) > 30:
+                cnt[2] += cnt[0] - median_l
+                cnt[0] = median_l
+                if len(cnt) == 4:
+                    cnt.append("correct") #label
+            if abs(cnt[0]+cnt[2]-median_r) > 30:
+                cnt[2] += median_r - (cnt[0] + cnt[2])
+                if len(cnt) == 4:
+                    cnt.append("correct") #label
+            rect_contours[i][j] = cnt
+
+    #optimize about y
+    row1, row2, row3, row4, row5 = zip(*rect_contours)
+    rc = [row1, row2, row3, row4, row5]
+    for i, row in enumerate(rc):
+        passer = [cnt for cnt in row if cnt[2]/cnt[3] > 0.95 and cnt[2]/cnt[3] < 1.05]
+        not_passer = [cnt for cnt in row if cnt[2]/cnt[3] <= 0.95 or cnt[2]/cnt[3] >= 1.05]
+
+        if len(not_passer) == 0:
+            continue
+        if len(passer) == 0:
+            continue
+
+        #calculate median
+        sorted_ = sorted(passer, key=lambda x: x[1])
+        median_t = sorted_[int(len(sorted_)/2-1)][1]
+        sorted_ = sorted(passer, key=lambda x: x[1]+x[3])
+        median_b = sorted_[int(len(sorted_)/2-0.5)]
+        median_b = median_b[1] + median_b[3]
+
+        #correct
+        for cnt in not_passer:
+            j = rc[i].index(cnt)
+            if abs(cnt[1]-median_t) > 30:
+                cnt[3] += cnt[1] - median_t
+                cnt[1] = median_t
+                if len(cnt) == 4:
+                    cnt.append("correct") #label
+            if abs(cnt[1]+cnt[3]-median_b) > 30:
+                cnt[3] += median_b - (cnt[1] + cnt[3])
+                if len(cnt) == 4:
+                    cnt.append("correct") #label
+            rect_contours[j][i] = cnt
 
     return rect_contours
 
