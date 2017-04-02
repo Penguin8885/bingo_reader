@@ -42,9 +42,10 @@ def get_frame(bgr_img, binary_img, nc=True, view_type=1):
         x, y, w, h = cv2.boundingRect(cnt)
         rect_contours.append([x, y, w, h])
 
-    if nc is True:
+    if nc is True or nc == 0:
         #noise cancellation
         rect_contours = noise_cancellation(rect_contours)
+    if nc is True or nc != 0:
         #optimize for bingo cards
         rect_contours = optimize(rect_contours)
 
@@ -149,15 +150,21 @@ def optimize(rect_contours0):
             ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
                 sorted_.remove(cnt)
-        median_l = sorted_[int(len(sorted_)/2-1)][0]
+        if len(serted_) > 0:
+            median_l = sorted_[int(len(sorted_)/2-1)][0]
+        else:
+            median_l = cluster[0][0]
         ##search right median
         sorted_ = sorted(cluster, key=lambda x: x[0]+x[2])
         for cnt in sorted_[:]:
             ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
                 sorted_.remove(cnt)
-        median_r = sorted_[int(len(sorted_)/2-0.5)]
-        median_r = median_r[0] + median_r[2]
+        if len(serted_) > 0:
+            median_r = sorted_[int(len(sorted_)/2-0.5)]
+            median_r = median_r[0] + median_r[2]
+        else:
+            median_r = cluster[0][0] + cluster[0][2]
 
         med_l.append(median_l)
         med_r.append(median_r)
@@ -207,15 +214,21 @@ def optimize(rect_contours0):
             ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
                 sorted_.remove(cnt)
-        median_t = sorted_[int(len(sorted_)/2-1)][1]
+        if len(serted_) > 0:
+            median_t = sorted_[int(len(sorted_)/2-1)][1]
+        else:
+            median_t = cluster[0][1]
         ##search bottom median
         sorted_ = sorted(cluster, key=lambda x: x[1]+x[3])
         for cnt in sorted_[:]:
             ratio = cnt[2] / cnt[3]
             if ratio < 0.95 or ratio > 1.05:
                 sorted_.remove(cnt)
-        median_b = sorted_[int(len(sorted_)/2-0.5)]
-        median_b = median_b[1] + median_b[3]
+        if len(serted_) > 0:
+            median_b = sorted_[int(len(sorted_)/2-0.5)]
+            median_b = median_b[1] + median_b[3]
+        else:
+            median_b = cluster[0][1] + cluster[0][3]
 
         med_t.append(median_t)
         med_b.append(median_b)
@@ -332,7 +345,6 @@ def get_numbers(number_imgs):
 
             #exception check
             if sum(correlation) > 100 and max(correlation) < 90:
-                print(n, max(correlation), correlation)
                 plt.imshow(cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB))
                 plt.show()
 
@@ -359,9 +371,8 @@ def get_numbers(number_imgs):
 def write_img(file_name, img, frame, numbers):
     #draw image
     frame_img = np.copy(img)
-    for i in range(25):
+    for i, cnt in enumerate(frame):
         ##draw frame
-        cnt = frame[i]
         cv2.rectangle(frame_img, (cnt[0],cnt[1]), (cnt[0]+cnt[2],cnt[1]+cnt[3]), (0,0,255), 10)
         cv2.putText(
             frame_img,
