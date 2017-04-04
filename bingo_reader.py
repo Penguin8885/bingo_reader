@@ -66,8 +66,8 @@ def get_frame(bgr_img, binary_img, nc=True, view_type=1):
                     rect_contours.index(cnt), "\t",
                     (cnt[0],cnt[1],cnt[0]+cnt[2],cnt[1]+cnt[3]),
                     (cnt[2]*cnt[3],"{:.4f}".format(cnt[2]/cnt[3])), "  ",
+                    "--"+str(cnt[4])
                 )
-                "--"+str(cnt[4])
     elif view_type == 2:
         print("# \t (x0, y0, x1, y1) (area, ratio) --modification")
         for cnt in rect_contours:
@@ -438,7 +438,7 @@ if __name__ == '__main__':
             except Exception as e:
                 print(e, "\n", "pass "+file_name)
                 writer.writerow(["###"])
-                shutil.copyfile("./error/"+file_name, "./data/"+file_name)
+                shutil.copyfile("./data/"+file_name, "./error/"+file_name)
                 os.remove("./data/"+file_name)
             finally:
                 pass
