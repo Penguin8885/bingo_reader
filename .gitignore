@@ -3,5 +3,4 @@ data/*
 result/*
 error/*
 !.gitkeep
-*_sample.jpg
 bingo_numbers.csv

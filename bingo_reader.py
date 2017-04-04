@@ -33,9 +33,9 @@ def get_hsv_thresholding_img(bgr_img, lower, upper, pre_blur_func=GaussianBlur, 
 
 
 
-def get_frame(bgr_img, binary_img, nc=True, view_type=1):
+def get_frame(binary_img, view_type=1):
     #get contour
-    _, contours, _ = cv2.findContours(binary_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(binary_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
     #get rect contour
     rect_contours = []
@@ -44,15 +44,13 @@ def get_frame(bgr_img, binary_img, nc=True, view_type=1):
         rect_contours.append([x, y, w, h])
 
     #noise cancellation
-    if nc is True or nc == 0:
-        rect_contours = noise_cancellation(rect_contours)
+    rect_contours = noise_cancellation(rect_contours)
 
     #sort and configure matrix
     rect_contours = configure_matrix(rect_contours)
 
     #optimize for bingo cards
-    if nc is True or nc != 0:
-        rect_contours = optimize(rect_contours)
+    rect_contours = optimize(rect_contours)
 
     #convert matrix to list
     rect_contours = [rect_contours[i][j] for i in range(5) for j in range(5)]
@@ -127,7 +125,7 @@ def configure_matrix(rect_contours):
 
     return rc_mat
 
-def noise_cancellation(rect_contours):
+def noise_cancellation(rect_contours, err_ignore=False):
     passer = []
     for cnt in rect_contours:
         area = cnt[2]*cnt[3]
@@ -136,6 +134,23 @@ def noise_cancellation(rect_contours):
             passer.append(cnt)
 
     if len(passer) > 25:
+        passer_copy = passer[:]
+        for cnt1 in passer[:]:
+            for cnt2 in passer[:]:
+                if cnt1 == cnt2:
+                    continue
+                top_l1 = (cnt1[0], cnt1[1])
+                btm_r1 = (cnt1[0]+cnt1[2], cnt1[1]+cnt1[3])
+                top_l2 = (cnt2[0], cnt2[1])
+                btm_r2 = (cnt2[0]+cnt2[2], cnt2[1]+cnt2[3])
+                if top_l1[0] <= top_l2[0] and top_l2[0] <= btm_r1[0] \
+                 and top_l1[1] <= top_l2[1] and top_l2[1] <= btm_r1[1] \
+                 and top_l1[0] <= btm_r2[0] and btm_r2[0] <= btm_r1[0] \
+                 and top_l1[1] <= btm_r2[1] and btm_r2[1] <= btm_r1[1]:
+                    passer.remove(cnt2)
+
+
+    if err_ignore is False and len(passer) > 25:
         raise Exception("Noise Cancellation Filure, the number of cnt is over 25")
 
     return passer
@@ -435,7 +450,7 @@ if __name__ == '__main__':
                 print("\n", file_name, "\a")
                 img = cv2.imread("./data/"+file_name)
                 threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
-                frame = get_frame(img, threshold_img)
+                frame = get_frame(threshold_img)
                 number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
                 numbers = get_numbers(number_imgs)
                 write_img("./result/"+file_name, img, frame, numbers)
