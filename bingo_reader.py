@@ -256,7 +256,6 @@ def optimize(rect_contours0):
         if index2 is None:
             raise Exception("Correction Failure, cannot correct")
         section_size = int((rect_contours[index2][0][0] - rect_contours[index1][0][0]) / (index2 - index1))
-
         ##correction
         for i in range(4):
             if col_flag[i] is True and col_flag[i+1] is False:
@@ -272,6 +271,7 @@ def optimize(rect_contours0):
                     rect_contours[i-1][j][2] = rect_contours[i][j][2]
                     if len(rect_contours[i-1][j]) == 4:
                         rect_contours[i-1][j].append("correct") #label
+
     if False in row_flag:
         ##serach TRUE row and get section_size
         index1 = None; index2 = None
@@ -286,7 +286,6 @@ def optimize(rect_contours0):
         if index2 is None:
             raise Exception("Correction Failure")
         section_size = int((rect_contours[0][index2][1] - rect_contours[0][index1][1]) / (index2 - index1))
-
         ##correction
         for i in range(4):
             if row_flag[i] is True and row_flag[i+1] is False:
@@ -299,7 +298,7 @@ def optimize(rect_contours0):
             if row_flag[i] is True and row_flag[i-1] is False:
                 for j in range(5):
                     rect_contours[j][i-1][1] = rect_contours[j][i][1] - section_size
-                    rect_contours[j][i-1][4] = rect_contours[j][i][4]
+                    rect_contours[j][i-1][3] = rect_contours[j][i][3]
                     if len(rect_contours[j][i-1]) == 4:
                         rect_contours[j][i-1].append("correct") #label
 
