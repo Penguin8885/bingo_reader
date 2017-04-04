@@ -321,6 +321,7 @@ def get_numbers(number_imgs):
         img = (img<127).astype(np.int)
         img[img==0] = -1
         base_num_img.append(img)
+    base_40_img = np.load("./num_img/figureX_40.npy")
 
     #convert number_imgs to numbers
     numbers = []
@@ -369,8 +370,11 @@ def get_numbers(number_imgs):
 
         #append results
         if number == 0:
-            print("warning: can not read number, guess the number is 40")
-            number = 40
+            if sum(sum(base_40_img*c)) > 90:
+                number = 40
+            else:
+                raise Exception("cannnot read number")
+
         numbers.append(number)
 
     print(numbers)
@@ -422,6 +426,8 @@ if __name__ == '__main__':
     with open("bingo_numbers.csv", "w") as csv_f:
         writer = csv.writer(csv_f, lineterminator='\n')
         for file_name in file_names:
+            if file_name == ".gitkeep":
+                continue
             try:
                 print("\n", file_name, "\a")
                 img = cv2.imread("./data/"+file_name)

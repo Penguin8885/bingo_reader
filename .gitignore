@@ -1,5 +1,6 @@
-__pycache__/
-data/
-result/
-error/
+__pycache__/*
+data/*
+result/*
+error/*
+!.gitkeep
 *_sample.jpg
