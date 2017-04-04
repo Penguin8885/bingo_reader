@@ -355,6 +355,8 @@ def get_numbers(number_imgs):
         #get rect contour & number charactor images
         char_imgs = []
         for cnt in contours:
+            if cv2.contourArea(cnt) < 12000:
+                continue #filter
             x, y, w, h = cv2.boundingRect(cnt)
             if w*h > 900000 or w*h < 50000:
                 continue #filter
@@ -365,7 +367,7 @@ def get_numbers(number_imgs):
         #calculate correlation & recognize number
         number = 0
         for char_img in char_imgs:
-            char_img = char_img[1]
+            char_img = char_img[1] #remove x from [x, char_img]
 
             #get the correlation & the number
             c = (char_img<127).astype(np.int)
@@ -386,7 +388,9 @@ def get_numbers(number_imgs):
 
         #append results
         if number == 0:
-            if sum(sum(base_40_img*c))/10000 > 90:
+            ci = (char_imgs[0][1]<127).astype(np.int)
+            ci[ci==0] = -1
+            if sum(sum(base_40_img*ci))/10000 > 90:
                 number = 40
             else:
                 raise Exception("Number Acquisition Failure, cannnot read")
@@ -447,9 +451,9 @@ if __name__ == '__main__':
             try:
                 print("\n", file_name, "\a")
                 img = cv2.imread("./data/"+file_name)
-                threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
+                threshold_img = get_hsv_thresholding_img(img, [90, 0, 100], [180, 100, 255]) #[30, 0, 100], [180, 100, 255]
                 frame = get_frame(threshold_img)
-                number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
+                number_imgs = get_number_imgs(img, frame, [0, 0, 130], [255, 255, 245], post_blur_func=GaussianBlur) #[0, 0, 100], [255, 255, 255]
                 numbers = get_numbers(number_imgs)
                 write_img("./result/"+file_name, img, frame, numbers)
 
