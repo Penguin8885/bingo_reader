@@ -321,7 +321,10 @@ def get_numbers(number_imgs):
         img = (img<127).astype(np.int)
         img[img==0] = -1
         base_num_img.append(img)
-    base_40_img = np.load("./num_img/figureX_40.npy")
+    img = np.load("./num_img/figureX_40.npy")
+    img = (img<127).astype(np.int)
+    img[img==0] = -1
+    base_40_img = img
 
     #convert number_imgs to numbers
     numbers = []
@@ -370,7 +373,7 @@ def get_numbers(number_imgs):
 
         #append results
         if number == 0:
-            if sum(sum(base_40_img*c)) > 90:
+            if sum(sum(base_40_img*c))/10000 > 90:
                 number = 40
             else:
                 raise Exception("cannnot read number")
