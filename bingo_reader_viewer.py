@@ -50,7 +50,7 @@ def show_number_imgs(file_name):
     frame = br.get_frame(img, threshold_img)
     number_imgs = br.get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=br.GaussianBlur)
 
-    for number_img in number_imgs:
+    for i, number_img in enumerate(number_imgs):
         cv2.imwrite("number"+str(i)+"_sample.jpg", number_img)
         number_img = cv2.cvtColor(number_img, cv2.COLOR_GRAY2RGB)
         plt.imshow(number_img)
@@ -65,9 +65,8 @@ def show_final_img(file_name):
     numbers = br.get_numbers(number_imgs)
 
     frame_img = np.copy(img)
-    for i in range(25):
+    for i, cnt in enumerate(frame):
         ##draw frame
-        cnt = frame[i]
         cv2.rectangle(frame_img, (cnt[0],cnt[1]), (cnt[0]+cnt[2],cnt[1]+cnt[3]), (0,0,255), 10)
         cv2.putText(
             frame_img,
@@ -99,11 +98,29 @@ def show_final_img(file_name):
 
 
 if __name__ == '__main__':
-    #4879
-    #4874,4877,4881
-    file_name = "./data/IMG_4877.jpg"
+    print("file number : ", end='')
+    file_num = input()
+    file_name = "./exam_data/" + file_num + ".jpg"
+    print("\n===========================")
+    print("0 : threshold_img")
+    print("1 : frame_img (noisy)")
+    print("2 : frame_img (noise cancel)")
+    print("3 : frame_img (optimize)")
+    print("4 : number_imgs")
+    print("5 : final_img")
+    print("===========================")
+    print("select type : ", end='')
+    n = int(input())
 
-    #show_thresholding_img(file_name)
-    #show_frame_img(file_name, nc=True)
-    #show_number_imgs(file_name)
-    show_final_img(file_name)
+    if n == 0:
+        show_thresholding_img(file_name)
+    elif n == 1:
+        show_frame_img(file_name, nc=False)
+    elif n == 2:
+        show_frame_img(file_name, nc=0)
+    elif n == 3:
+        show_frame_img(file_name, nc=True)
+    elif n == 4:
+        show_number_imgs(file_name)
+    elif n == 5:
+        show_final_img(file_name)

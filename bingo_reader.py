@@ -1,4 +1,6 @@
+import sys
 import os
+import shutil
 import csv
 import cv2
 import numpy as np
@@ -41,38 +43,20 @@ def get_frame(bgr_img, binary_img, nc=True, view_type=1):
         x, y, w, h = cv2.boundingRect(cnt)
         rect_contours.append([x, y, w, h])
 
-    if nc is True:
-        #noise cancellation
+    #noise cancellation
+    if nc is True or nc == 0:
         rect_contours = noise_cancellation(rect_contours)
-        #optimize for bingo cards
+
+    #sort and configure matrix
+    rect_contours = configure_matrix(rect_contours)
+
+    #optimize for bingo cards
+    if nc is True or nc != 0:
         rect_contours = optimize(rect_contours)
 
-    #sort
-    ##sort with x-axis
-    rect_contours.sort(key=lambda x: x[0])
-
-    ##clustering with x-axis
-    base = rect_contours[0]
-    cluster = []
-    rect_contour_clusters = []
-    for cnt in rect_contours:
-        if abs(base[0] - cnt[0]) < 200:
-            cluster.append(cnt)
-        else:
-            rect_contour_clusters.append(cluster)
-            base = cnt
-            cluster = [cnt]
-    rect_contour_clusters.append(cluster)
-
-    ##sort with y-axis
-    for cluster in rect_contour_clusters:
-        cluster.sort(key=lambda x: x[1])
-
-    ##to gather into one array
-    rect_contours = []
-    for cluster in rect_contour_clusters:
-        for cnt in cluster:
-            rect_contours.append(cnt)
+    #convert matrix to list
+    rect_contours = [rect_contours[i][j] for i in range(5) for j in range(5)]
+    rect_contours = [cnt for cnt in rect_contours if cnt is not None]
 
     ########
     if view_type == 1:
@@ -101,6 +85,48 @@ def get_frame(bgr_img, binary_img, nc=True, view_type=1):
 
     return rect_contours
 
+def center(cnt):
+    return (cnt[0]+cnt[2]/2, cnt[1]+cnt[3]/2)
+
+def configure_matrix(rect_contours):
+    #clustering with x
+    sorted_x = sorted(rect_contours, key=lambda x: center(x)[0])
+    base_index = 0
+    base_center = center(sorted_x[0])
+    clusters_x = []
+    for i, cnt in enumerate(sorted_x):
+        if abs(base_center[0] - center(cnt)[0]) > 200:
+            clusters_x.append(sorted_x[base_index:i])
+            base_index = i
+            base_center = center(cnt)
+    clusters_x.append(sorted_x[base_index:])
+
+    #clustering with y
+    sorted_y = sorted(rect_contours, key=lambda x: center(x)[1])
+    base_index = 0
+    base_center = center(sorted_y[0])
+    clusters_y = []
+    for i, cnt in enumerate(sorted_y):
+        if abs(base_center[1] - center(cnt)[1]) > 200:
+            clusters_y.append(sorted_y[base_index:i])
+            base_index = i
+            base_center = center(cnt)
+    clusters_y.append(sorted_y[base_index:])
+
+    #make matrix
+    rc_mat = [[None for i in range(5)] for j in range(5)]
+    for cnt in rect_contours:
+        for i, x_line in enumerate(clusters_x):
+            for j, y_line in enumerate(clusters_y):
+                if cnt in x_line and cnt in y_line:
+                    rc_mat[i][j] = cnt
+                    break
+            else:
+                continue
+            break
+
+    return rc_mat
+
 def noise_cancellation(rect_contours):
     passer = []
     for cnt in rect_contours:
@@ -108,6 +134,10 @@ def noise_cancellation(rect_contours):
         ratio = cnt[2]/cnt[3]
         if (area > 70000 and area < 200000) and (ratio > 0.7 and ratio < 1.3):
             passer.append(cnt)
+
+    if len(passer) > 25:
+        raise Exception("Noise Cancellation Filure, the number of cnt is over 25")
+
     return passer
 
 def optimize(rect_contours0):
@@ -116,149 +146,149 @@ def optimize(rect_contours0):
     #copy
     rect_contours = rect_contours0.copy()
 
-    #array of the median
-    med_l = []
-    med_r = []
-    med_t = []
-    med_b = []
-
-    ######## <step 1> Correction about x-axis ########
-
-    #clustering with x-axis
-    ##sort with x-axis
-    rect_contours.sort(key=lambda x: x[0])
-    ##clustering with x-axis
-    base = rect_contours[0]
-    cluster = []
-    rect_contour_clusters = []
-    for cnt in rect_contours:
-        if abs(base[0] - cnt[0]) < 200:
-            cluster.append(cnt)
-        else:
-            rect_contour_clusters.append(cluster)
-            base = cnt
-            cluster = [cnt]
-    rect_contour_clusters.append(cluster)
-
-    #optimize about x-axis
-    for cluster in rect_contour_clusters:
-        ##search left medial
-        sorted_ = sorted(cluster, key=lambda x: x[0])
-        for cnt in sorted_[:]:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                sorted_.remove(cnt)
-        median_l = sorted_[int(len(sorted_)/2)][0]
-        ##search right median
-        sorted_ = sorted(cluster, key=lambda x: x[0]+x[2])
-        for cnt in sorted_[:]:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                sorted_.remove(cnt)
-        median_r = sorted_[int(len(sorted_)/2+0.5)]
-        median_r = median_r[0] + median_r[2]
-
-        med_l.append(median_l)
-        med_r.append(median_r)
-
-        ##modify
-        for cnt in cluster:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                if abs(cnt[0]-median_l) > 30:
-                    cnt[2] += cnt[0] - median_l
-                    cnt[0] = median_l
-                    cnt.append("correct")
-                if abs(cnt[0]+cnt[2]-median_r) > 30:
-                    cnt[2] += median_r - (cnt[0] + cnt[2])
-                    if len(cnt) == 4:
-                        cnt.append("correct")
-    #to gather into one array
-    rect_contours = []
-    for cluster in rect_contour_clusters:
-        for cnt in cluster:
-            rect_contours.append(cnt)
-
-
-    ######## <step 2> Correction about y-axis ########
-
-    #clustering with y-axis
-    ##sort with y-axis
-    rect_contours.sort(key=lambda x: x[1])
-    ##clustering with y-axis
-    base = rect_contours[0]
-    cluster = []
-    rect_contour_clusters = []
-    for cnt in rect_contours:
-        if abs(base[1] - cnt[1]) < 200:
-            cluster.append(cnt)
-        else:
-            rect_contour_clusters.append(cluster)
-            base = cnt
-            cluster = [cnt]
-    rect_contour_clusters.append(cluster)
-    #optimize about y-axis
-
-    for cluster in rect_contour_clusters:
-        ##search top medial
-        sorted_ = sorted(cluster, key=lambda x: x[1])
-        for cnt in sorted_[:]:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                sorted_.remove(cnt)
-        median_t = sorted_[int(len(sorted_)/2)][1]
-        ##search bottom median
-        sorted_ = sorted(cluster, key=lambda x: x[1]+x[3])
-        for cnt in sorted_[:]:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                sorted_.remove(cnt)
-        median_b = sorted_[int(len(sorted_)/2+0.5)]
-        median_b = median_b[1] + median_b[3]
-
-        med_t.append(median_t)
-        med_b.append(median_b)
-
-        ##modify
-        for cnt in cluster:
-            ratio = cnt[2] / cnt[3]
-            if ratio < 0.95 or ratio > 1.05:
-                if abs(cnt[1]-median_t) > 30:
-                    cnt[3] += cnt[1] - median_t
-                    cnt[1] = median_t
-                    cnt.append("correct")
-                if abs(cnt[1]+cnt[3]-median_b) > 30:
-                    cnt[3] += median_b - (cnt[1] + cnt[3])
-                    if len(cnt) == 4:
-                        cnt.append("correct")
-
-    #to gather into one array
-    rect_contours = []
-    for cluster in rect_contour_clusters:
-        for cnt in cluster:
-            rect_contours.append(cnt)
-
-
-    ######## <step 3> fill the blank ########
-
-    #search the blank and fill it
-    med_l.sort()
-    med_r.sort()
-    med_t.sort()
-    med_b.sort()
+    #convert None -> tmp_cnt
     for i in range(5):
         for j in range(5):
-            flag = False
-            for cnt in rect_contours[:]:
-                if abs(cnt[0]-med_l[i]) < 100 and abs(cnt[1]-med_t[j]) < 100:
-                    flag = True
-                    break
-            if flag is False:
-                rect_contours.append([med_l[i],med_t[j],(med_r[i]-med_l[i]),(med_b[j]-med_t[j]), "add"])
+            if rect_contours[i][j] is None:
+                rect_contours[i][j] = [5, 5, 1, 10, "add"] #with label
 
-    if len(rect_contours) != 25:
-        print("error : the number of cntours is not 25")
-        return None
+    #optimize about x
+    col_flag = []
+    rc = rect_contours.copy()
+    for i, col in enumerate(rc):
+        passer = [cnt for cnt in col if cnt[2]/cnt[3] > 0.95 and cnt[2]/cnt[3] < 1.05]
+        not_passer = [cnt for cnt in col if cnt[2]/cnt[3] <= 0.95 or cnt[2]/cnt[3] >= 1.05]
+
+        if len(not_passer) == 0:
+            col_flag.append(True)
+            continue
+        if len(passer) == 0:
+            col_flag.append(False)
+            continue
+        else:
+            col_flag.append(True)
+
+        #calculate median
+        sorted_ = sorted(passer, key=lambda x: x[0])
+        median_l = sorted_[int(len(sorted_)/2-1)][0]
+        sorted_ = sorted(passer, key=lambda x: x[0]+x[2])
+        median_r = sorted_[int(len(sorted_)/2-0.5)]
+        median_r = median_r[0] + median_r[2]
+
+        #correct
+        for cnt in not_passer:
+            j = rc[i].index(cnt)
+            if abs(cnt[0]-median_l) > 30:
+                cnt[2] += cnt[0] - median_l
+                cnt[0] = median_l
+                if len(cnt) == 4:
+                    cnt.append("correct") #label
+            if abs(cnt[0]+cnt[2]-median_r) > 30:
+                cnt[2] += median_r - (cnt[0] + cnt[2])
+                if len(cnt) == 4:
+                    cnt.append("correct") #label
+            rect_contours[i][j] = cnt
+
+    #optimize about y
+    row_flag = []
+    row1, row2, row3, row4, row5 = zip(*rect_contours)
+    rc = [row1, row2, row3, row4, row5]
+    for i, row in enumerate(rc):
+        passer = [cnt for cnt in row if cnt[2]/cnt[3] > 0.95 and cnt[2]/cnt[3] < 1.05]
+        not_passer = [cnt for cnt in row if cnt[2]/cnt[3] <= 0.95 or cnt[2]/cnt[3] >= 1.05]
+
+        if len(not_passer) == 0:
+            row_flag.append(True)
+            continue
+        if len(passer) == 0:
+            row_flag.append(False)
+            continue
+        else:
+            row_flag.append(True)
+
+        #calculate median
+        sorted_ = sorted(passer, key=lambda x: x[1])
+        median_t = sorted_[int(len(sorted_)/2-1)][1]
+        sorted_ = sorted(passer, key=lambda x: x[1]+x[3])
+        median_b = sorted_[int(len(sorted_)/2-0.5)]
+        median_b = median_b[1] + median_b[3]
+
+        #correct
+        for cnt in not_passer:
+            j = rc[i].index(cnt)
+            if abs(cnt[1]-median_t) > 30:
+                cnt[3] += cnt[1] - median_t
+                cnt[1] = median_t
+                if len(cnt) == 4:
+                    cnt.append("correct") #label
+            if abs(cnt[1]+cnt[3]-median_b) > 30:
+                cnt[3] += median_b - (cnt[1] + cnt[3])
+                if len(cnt) == 4:
+                    cnt.append("correct") #label
+            rect_contours[j][i] = cnt
+
+    #optimize again
+    if False in col_flag:
+        ##serach TRUE column and get section_size
+        index1 = None; index2 = None
+        for i, flag in enumerate(col_flag):
+            if flag is True:
+                if index1 is None:
+                    index1 = i
+                    continue
+                else:
+                    index2 = i
+                    break
+        if index2 is None:
+            raise Exception("Correction Failure")
+        section_size = int((rect_contours[index2][0][0] - rect_contours[index1][0][0]) / (index2 - index1))
+
+        ##correction
+        for i in range(4):
+            if col_flag[i] is True and col_flag[i+1] is False:
+                for j in range(5):
+                    rect_contours[i+1][j][0] = rect_contours[i][j][0] + section_size
+                    rect_contours[i+1][j][2] = rect_contours[i][j][2]
+                    if len(rect_contours[i+1][j]) == 4:
+                        rect_contours[i+1][j].append("correct") #label
+        for i in range(4,0,-1):
+            if col_flag[i] is True and col_flag[i-1] is False:
+                for j in range(5):
+                    rect_contours[i-1][j][0] = rect_contours[i][j][0] - section_size
+                    rect_contours[i-1][j][2] = rect_contours[i][j][2]
+                    if len(rect_contours[i-1][j]) == 4:
+                        rect_contours[i-1][j].append("correct") #label
+    if False in row_flag:
+        ##serach TRUE row and get section_size
+        index1 = None; index2 = None
+        for i, flag in enumerate(row_flag):
+            if flag is True:
+                if index1 is None:
+                    index1 = i
+                    continue
+                else:
+                    index2 = i
+                    break
+        if index2 is None:
+            raise Exception("Correction Failure")
+        section_size = int((rect_contours[0][index2][1] - rect_contours[0][index1][1]) / (index2 - index1))
+
+        ##correction
+        for i in range(4):
+            if row_flag[i] is True and row_flag[i+1] is False:
+                for j in range(5):
+                    rect_contours[j][i+1][1] = rect_contours[j][i][1] + section_size
+                    rect_contours[j][i+1][3] = rect_contours[j][i][3]
+                    if len(rect_contours[j][i-1]) == 4:
+                        rect_contours[j][i-1].append("correct") #label
+        for i in range(4,0,-1):
+            if row_flag[i] is True and row_flag[i-1] is False:
+                for j in range(5):
+                    rect_contours[j][i-1][1] = rect_contours[j][i][1] - section_size
+                    rect_contours[j][i-1][4] = rect_contours[j][i][4]
+                    if len(rect_contours[j][i-1]) == 4:
+                        rect_contours[j][i-1].append("correct") #label
+
 
     return rect_contours
 
@@ -331,7 +361,6 @@ def get_numbers(number_imgs):
 
             #exception check
             if sum(correlation) > 100 and max(correlation) < 90:
-                print(n, max(correlation), correlation)
                 plt.imshow(cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB))
                 plt.show()
 
@@ -345,6 +374,11 @@ def get_numbers(number_imgs):
         numbers.append(number)
 
     print(numbers)
+
+    #check duplication
+    if len(np.unique(numbers)) < 25:
+        raise Exception("Duplication is detected")
+
     return numbers
 
 
@@ -352,9 +386,8 @@ def get_numbers(number_imgs):
 def write_img(file_name, img, frame, numbers):
     #draw image
     frame_img = np.copy(img)
-    for i in range(25):
+    for i, cnt in enumerate(frame):
         ##draw frame
-        cnt = frame[i]
         cv2.rectangle(frame_img, (cnt[0],cnt[1]), (cnt[0]+cnt[2],cnt[1]+cnt[3]), (0,0,255), 10)
         cv2.putText(
             frame_img,
@@ -386,18 +419,26 @@ def write_img(file_name, img, frame, numbers):
 
 if __name__ == '__main__':
     file_names = os.listdir("./data/")
-    with open('bingo_numbers.csv', 'w') as f:
+    with open("bingo_numbers.csv", "w") as csv_f:
+        writer = csv.writer(csv_f, lineterminator='\n')
         for file_name in file_names:
-            print("\n", file_name, "\a")
-            img = cv2.imread("./data/"+file_name)
-            threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
-            frame = get_frame(img, threshold_img)
-            number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
-            numbers = get_numbers(number_imgs)
-            #write_img("./result/"+file_name, img, frame, numbers)
+            try:
+                print("\n", file_name, "\a")
+                img = cv2.imread("./data/"+file_name)
+                threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
+                frame = get_frame(img, threshold_img)
+                number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
+                numbers = get_numbers(number_imgs)
+                write_img("./result/"+file_name, img, frame, numbers)
 
-            #output numbers to csv
-            root, ext = os.path.splitext(file_name)
-            numbers.insert(0, root)
-            writer = csv.writer(f, lineterminator='\n')
-            writer.writerow(numbers)
+                #output numbers to csv
+                root, ext = os.path.splitext(file_name)
+                numbers.insert(0, root)
+                writer.writerow(numbers)
+            except Exception as e:
+                print(e, "\n", "pass "+file_name)
+                writer.writerow(["###"])
+                shutil.copyfile("./data/"+file_name, "./error/"+file_name)
+                os.remove("./data/"+file_name)
+            finally:
+                pass
