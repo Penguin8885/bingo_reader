@@ -112,11 +112,11 @@ def show_final_img(file_name):
 
 
 if __name__ == '__main__':
-    file_names = os.listdir("./exam_data/")
+    file_names = os.listdir("./error/")
     print(file_names)
     print("file number : ", end='')
     file_num = input()
-    file_name = "./exam_data/" + file_num + ".jpg"
+    file_name = "./error/" + file_num + ".jpg"
     if file_num+".jpg" not in file_names and file_num+".JPG" not in file_names:
         print("input proper number")
         sys.exit(0)
