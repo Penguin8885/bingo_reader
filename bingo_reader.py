@@ -461,7 +461,7 @@ if __name__ == '__main__':
                 writer.writerow(numbers)
             except Exception as e:
                 print(e, "\n", "pass "+file_name)
-                writer.writerow(["###"])
+                writer.writerow(["###", e.args[0]])
                 shutil.copyfile("./data/"+file_name, "./error/"+file_name)
                 os.remove("./data/"+file_name)
             finally:
