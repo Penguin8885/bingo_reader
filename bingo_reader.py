@@ -376,6 +376,8 @@ def get_numbers(number_imgs):
             for i in range(10):
                 if correlation[i] < 70:
                     correlation[i] = 0 #filter
+            if all(cor == 0 for cor in correlation) is True:
+                continue #filters
             n = correlation.index(max(correlation))
 
             #exception check
