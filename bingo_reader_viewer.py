@@ -117,7 +117,7 @@ if __name__ == '__main__':
     print("file number : ", end='')
     file_num = input()
     file_name = "./exam_data/" + file_num + ".jpg"
-    if file_num+".JPG" not in file_names:
+    if file_num+".jpg" not in file_names and file_num+".JPG" not in file_names:
         print("input proper number")
         sys.exit(0)
     print("\n===========================")
