@@ -149,9 +149,8 @@ def noise_cancellation(rect_contours, err_ignore=False):
                  and top_l1[1] <= btm_r2[1] and btm_r2[1] <= btm_r1[1]:
                     passer.remove(cnt2)
 
-
-    if err_ignore is False and len(passer) > 25:
-        raise Exception("Noise Cancellation Filure, the number of cnt is over 25")
+    if err_ignore is False and (len(passer) > 25 or len(passer) == 0):
+        raise Exception("Noise Cancellation Filure, the number of cnt is not proper")
 
     return passer
 
@@ -255,7 +254,7 @@ def optimize(rect_contours0):
                     index2 = i
                     break
         if index2 is None:
-            raise Exception("Correction Failure")
+            raise Exception("Correction Failure, cannot correct")
         section_size = int((rect_contours[index2][0][0] - rect_contours[index1][0][0]) / (index2 - index1))
 
         ##correction
@@ -391,7 +390,7 @@ def get_numbers(number_imgs):
             if sum(sum(base_40_img*c))/10000 > 90:
                 number = 40
             else:
-                raise Exception("cannnot read number")
+                raise Exception("Number Acquisition Failure, cannnot read")
 
         numbers.append(number)
 
