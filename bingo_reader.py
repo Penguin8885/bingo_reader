@@ -44,7 +44,7 @@ def get_frame(binary_img, view_type=1):
         rect_contours.append([x, y, w, h])
 
     #noise cancellation
-    rect_contours = noise_cancellation(rect_contours)
+    rect_contours = noise_cancellation(rect_contours, contours)
 
     #sort and configure matrix
     rect_contours = configure_matrix(rect_contours)
@@ -111,6 +111,12 @@ def configure_matrix(rect_contours):
             base_center = center(cnt)
     clusters_y.append(sorted_y[base_index:])
 
+    if len(clusters_x) > 5 \
+     or len(clusters_y) > 5 \
+     or any(len(clst) > 5 for clst in clusters_x) is True \
+     or any(len(clst) > 5 for clst in clusters_y) is True:
+     raise Exception("Sort Failure, the number of cluster is not proper")
+
     #make matrix
     rc_mat = [[None for i in range(5)] for j in range(5)]
     for cnt in rect_contours:
@@ -125,12 +131,13 @@ def configure_matrix(rect_contours):
 
     return rc_mat
 
-def noise_cancellation(rect_contours, err_ignore=False):
+def noise_cancellation(rect_contours, contours, err_ignore=False):
     passer = []
-    for cnt in rect_contours:
+    for cnt, b_cnt in zip(rect_contours, contours):
         area = cnt[2]*cnt[3]
         ratio = cnt[2]/cnt[3]
-        if (area > 70000 and area < 200000) and (ratio > 0.7 and ratio < 1.3):
+        if (area > 70000 and area < 200000) and (ratio > 0.7 and ratio < 1.3) \
+         and cv2.contourArea(b_cnt) > 30000:
             passer.append(cnt)
 
     if len(passer) > 25:
@@ -373,29 +380,29 @@ def get_numbers(number_imgs):
             c = (char_img<127).astype(np.int)
             c[c==0] = -1
             correlation = [int(sum(sum(base_num_img[i]*c))/10000) for i in range(10)]
+
+            #filter and check exception
             for i in range(10):
                 if correlation[i] < 70:
                     correlation[i] = 0 #filter
             if all(cor == 0 for cor in correlation) is True:
-                continue #filters
+                if sum(sum(base_40_img*c))/10000 > 90:
+                    number = 40
+                    continue
+                else:
+                    raise Exception("Number Acquisition Failure, all correlation are 0")
             n = correlation.index(max(correlation))
 
             #exception check
             if sum(correlation) > 100 and max(correlation) < 90:
-                plt.imshow(cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB))
-                plt.show()
+                raise Exception("Number Acquisition Failure, there are correlation over 70 more than 2")
 
             #result
             number = number*10 + n
 
         #append results
         if number == 0:
-            ci = (char_imgs[0][1]<127).astype(np.int)
-            ci[ci==0] = -1
-            if sum(sum(base_40_img*ci))/10000 > 90:
-                number = 40
-            else:
-                raise Exception("Number Acquisition Failure, cannnot read")
+            raise Exception("Number Acquisition Failure, cannnot read")
 
         numbers.append(number)
 
@@ -453,9 +460,9 @@ if __name__ == '__main__':
             try:
                 print("\n", file_name, "\a")
                 img = cv2.imread("./data/"+file_name)
-                threshold_img = get_hsv_thresholding_img(img, [90, 0, 100], [180, 100, 255]) #[30, 0, 100], [180, 100, 255]
+                threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255]) #[30, 45, 100], [180, 100, 255]
                 frame = get_frame(threshold_img)
-                number_imgs = get_number_imgs(img, frame, [0, 0, 130], [255, 255, 245], post_blur_func=GaussianBlur) #[0, 0, 100], [255, 255, 255]
+                number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
                 numbers = get_numbers(number_imgs)
                 write_img("./result/"+file_name, img, frame, numbers)
 

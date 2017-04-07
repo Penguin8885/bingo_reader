@@ -30,7 +30,7 @@ def show_frame_img(file_name, nc):
 
     #noise cancellation
     if nc >= 2:
-        rect_contours = br.noise_cancellation(rect_contours, err_ignore=True)
+        rect_contours = br.noise_cancellation(rect_contours, contours, err_ignore=True)
 
     #sort and configure matrix, optimize for bingo cards
     if nc >= 3:
