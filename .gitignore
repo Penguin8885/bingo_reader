@@ -1,5 +1,6 @@
-__pycache__/
-data/
-result/
-error/
-*_sample.jpg
+__pycache__/*
+data/*
+result/*
+error/*
+!.gitkeep
+bingo_numbers.csv

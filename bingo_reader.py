@@ -33,9 +33,9 @@ def get_hsv_thresholding_img(bgr_img, lower, upper, pre_blur_func=GaussianBlur, 
 
 
 
-def get_frame(bgr_img, binary_img, nc=True, view_type=1):
+def get_frame(binary_img, view_type=1):
     #get contour
-    _, contours, _ = cv2.findContours(binary_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(binary_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
     #get rect contour
     rect_contours = []
@@ -44,15 +44,13 @@ def get_frame(bgr_img, binary_img, nc=True, view_type=1):
         rect_contours.append([x, y, w, h])
 
     #noise cancellation
-    if nc is True or nc == 0:
-        rect_contours = noise_cancellation(rect_contours)
+    rect_contours = noise_cancellation(rect_contours, contours)
 
     #sort and configure matrix
     rect_contours = configure_matrix(rect_contours)
 
     #optimize for bingo cards
-    if nc is True or nc != 0:
-        rect_contours = optimize(rect_contours)
+    rect_contours = optimize(rect_contours)
 
     #convert matrix to list
     rect_contours = [rect_contours[i][j] for i in range(5) for j in range(5)]
@@ -113,6 +111,12 @@ def configure_matrix(rect_contours):
             base_center = center(cnt)
     clusters_y.append(sorted_y[base_index:])
 
+    if len(clusters_x) > 5 \
+     or len(clusters_y) > 5 \
+     or any(len(clst) > 5 for clst in clusters_x) is True \
+     or any(len(clst) > 5 for clst in clusters_y) is True:
+     raise Exception("Sort Failure, the number of cluster is not proper")
+
     #make matrix
     rc_mat = [[None for i in range(5)] for j in range(5)]
     for cnt in rect_contours:
@@ -127,16 +131,33 @@ def configure_matrix(rect_contours):
 
     return rc_mat
 
-def noise_cancellation(rect_contours):
+def noise_cancellation(rect_contours, contours, err_ignore=False):
     passer = []
-    for cnt in rect_contours:
+    for cnt, b_cnt in zip(rect_contours, contours):
         area = cnt[2]*cnt[3]
         ratio = cnt[2]/cnt[3]
-        if (area > 70000 and area < 200000) and (ratio > 0.7 and ratio < 1.3):
+        if (area > 70000 and area < 200000) and (ratio > 0.7 and ratio < 1.3) \
+         and cv2.contourArea(b_cnt) > 30000:
             passer.append(cnt)
 
     if len(passer) > 25:
-        raise Exception("Noise Cancellation Filure, the number of cnt is over 25")
+        passer_copy = passer[:]
+        for cnt1 in passer[:]:
+            for cnt2 in passer[:]:
+                if cnt1 == cnt2:
+                    continue
+                top_l1 = (cnt1[0], cnt1[1])
+                btm_r1 = (cnt1[0]+cnt1[2], cnt1[1]+cnt1[3])
+                top_l2 = (cnt2[0], cnt2[1])
+                btm_r2 = (cnt2[0]+cnt2[2], cnt2[1]+cnt2[3])
+                if top_l1[0] <= top_l2[0] and top_l2[0] <= btm_r1[0] \
+                 and top_l1[1] <= top_l2[1] and top_l2[1] <= btm_r1[1] \
+                 and top_l1[0] <= btm_r2[0] and btm_r2[0] <= btm_r1[0] \
+                 and top_l1[1] <= btm_r2[1] and btm_r2[1] <= btm_r1[1]:
+                    passer.remove(cnt2)
+
+    if err_ignore is False and (len(passer) > 25 or len(passer) == 0):
+        raise Exception("Noise Cancellation Filure, the number of cnt is not proper")
 
     return passer
 
@@ -240,9 +261,8 @@ def optimize(rect_contours0):
                     index2 = i
                     break
         if index2 is None:
-            raise Exception("Correction Failure")
+            raise Exception("Correction Failure, cannot correct")
         section_size = int((rect_contours[index2][0][0] - rect_contours[index1][0][0]) / (index2 - index1))
-
         ##correction
         for i in range(4):
             if col_flag[i] is True and col_flag[i+1] is False:
@@ -258,6 +278,7 @@ def optimize(rect_contours0):
                     rect_contours[i-1][j][2] = rect_contours[i][j][2]
                     if len(rect_contours[i-1][j]) == 4:
                         rect_contours[i-1][j].append("correct") #label
+
     if False in row_flag:
         ##serach TRUE row and get section_size
         index1 = None; index2 = None
@@ -272,7 +293,6 @@ def optimize(rect_contours0):
         if index2 is None:
             raise Exception("Correction Failure")
         section_size = int((rect_contours[0][index2][1] - rect_contours[0][index1][1]) / (index2 - index1))
-
         ##correction
         for i in range(4):
             if row_flag[i] is True and row_flag[i+1] is False:
@@ -285,7 +305,7 @@ def optimize(rect_contours0):
             if row_flag[i] is True and row_flag[i-1] is False:
                 for j in range(5):
                     rect_contours[j][i-1][1] = rect_contours[j][i][1] - section_size
-                    rect_contours[j][i-1][4] = rect_contours[j][i][4]
+                    rect_contours[j][i-1][3] = rect_contours[j][i][3]
                     if len(rect_contours[j][i-1]) == 4:
                         rect_contours[j][i-1].append("correct") #label
 
@@ -321,6 +341,10 @@ def get_numbers(number_imgs):
         img = (img<127).astype(np.int)
         img[img==0] = -1
         base_num_img.append(img)
+    img = np.load("./num_img/figureX_40.npy")
+    img = (img<127).astype(np.int)
+    img[img==0] = -1
+    base_40_img = img
 
     #convert number_imgs to numbers
     numbers = []
@@ -338,6 +362,8 @@ def get_numbers(number_imgs):
         #get rect contour & number charactor images
         char_imgs = []
         for cnt in contours:
+            if cv2.contourArea(cnt) < 12000:
+                continue #filter
             x, y, w, h = cv2.boundingRect(cnt)
             if w*h > 900000 or w*h < 50000:
                 continue #filter
@@ -348,29 +374,36 @@ def get_numbers(number_imgs):
         #calculate correlation & recognize number
         number = 0
         for char_img in char_imgs:
-            char_img = char_img[1]
+            char_img = char_img[1] #remove x from [x, char_img]
 
             #get the correlation & the number
             c = (char_img<127).astype(np.int)
             c[c==0] = -1
             correlation = [int(sum(sum(base_num_img[i]*c))/10000) for i in range(10)]
+
+            #filter and check exception
             for i in range(10):
                 if correlation[i] < 70:
                     correlation[i] = 0 #filter
+            if all(cor == 0 for cor in correlation) is True:
+                if sum(sum(base_40_img*c))/10000 > 90:
+                    number = 40
+                    continue
+                else:
+                    raise Exception("Number Acquisition Failure, all correlation are 0")
             n = correlation.index(max(correlation))
 
             #exception check
             if sum(correlation) > 100 and max(correlation) < 90:
-                plt.imshow(cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB))
-                plt.show()
+                raise Exception("Number Acquisition Failure, there are correlation over 70 more than 2")
 
             #result
             number = number*10 + n
 
         #append results
         if number == 0:
-            print("warning: can not read number, guess the number is 40")
-            number = 40
+            raise Exception("Number Acquisition Failure, cannnot read")
+
         numbers.append(number)
 
     print(numbers)
@@ -413,6 +446,7 @@ def write_img(file_name, img, frame, numbers):
         )
 
     #save
+    frame_img = cv2.resize(frame_img, (480,600))
     cv2.imwrite(file_name, frame_img)
 
 
@@ -422,11 +456,13 @@ if __name__ == '__main__':
     with open("bingo_numbers.csv", "w") as csv_f:
         writer = csv.writer(csv_f, lineterminator='\n')
         for file_name in file_names:
+            if file_name == ".gitkeep":
+                continue
             try:
                 print("\n", file_name, "\a")
                 img = cv2.imread("./data/"+file_name)
-                threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255])
-                frame = get_frame(img, threshold_img)
+                threshold_img = get_hsv_thresholding_img(img, [30, 0, 100], [180, 100, 255]) #[30, 45, 100], [180, 100, 255]
+                frame = get_frame(threshold_img)
                 number_imgs = get_number_imgs(img, frame, [0, 0, 100], [255, 255, 255], post_blur_func=GaussianBlur)
                 numbers = get_numbers(number_imgs)
                 write_img("./result/"+file_name, img, frame, numbers)
@@ -437,7 +473,7 @@ if __name__ == '__main__':
                 writer.writerow(numbers)
             except Exception as e:
                 print(e, "\n", "pass "+file_name)
-                writer.writerow(["###"])
+                writer.writerow(["###", e.args[0]])
                 shutil.copyfile("./data/"+file_name, "./error/"+file_name)
                 os.remove("./data/"+file_name)
             finally:
