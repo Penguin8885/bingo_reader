@@ -446,6 +446,7 @@ def write_img(file_name, img, frame, numbers):
         )
 
     #save
+    frame_img = cv2.resize(frame_img, (480,600))
     cv2.imwrite(file_name, frame_img)
 
 
